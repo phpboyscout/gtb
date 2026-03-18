@@ -21,7 +21,7 @@ func TestSkeletonRun(t *testing.T) {
 		Tool: props.Tool{
 			ReleaseSource: props.ReleaseSource{
 				Type:  "github",
-				Owner: "ptps",
+				Owner: "phpboyscout",
 				Repo:  "gtb",
 			},
 		},
@@ -30,7 +30,7 @@ func TestSkeletonRun(t *testing.T) {
 
 	opts := SkeletonOptions{
 		Name:        "test-tool",
-		Repo:        "ptps/test-tool",
+		Repo:        "phpboyscout/test-tool",
 		Description: "A description of the test tool",
 		Path:        "test-project",
 	}
@@ -71,13 +71,13 @@ func TestSkeletonRun(t *testing.T) {
 	// Verify go.mod content
 	content, err := afero.ReadFile(fs, "test-project/go.mod")
 	assert.NoError(t, err)
-	assert.Contains(t, string(content), "module github.com/ptps/test-tool")
+	assert.Contains(t, string(content), "module github.com/phpboyscout/test-tool")
 
 	// Verify .golangci.yaml content
 	content, err = afero.ReadFile(fs, "test-project/.golangci.yaml")
 	assert.NoError(t, err)
 	assert.Contains(t, string(content), "local-prefixes")
-	assert.Contains(t, string(content), "github.com/ptps/test-tool")
+	assert.Contains(t, string(content), "github.com/phpboyscout/test-tool")
 
 	// Verify catalog-info.yaml content (Description)
 	content, err = afero.ReadFile(fs, "test-project/catalog-info.yaml")
@@ -93,8 +93,8 @@ func TestSkeletonRun(t *testing.T) {
 	content, err = afero.ReadFile(fs, "test-project/.gtb/manifest.yaml")
 	assert.NoError(t, err)
 	assert.Contains(t, string(content), "name: test-tool")
-	assert.Contains(t, string(content), "repo: ptps/test-tool")
-	assert.Contains(t, string(content), "owner: ptps")
+	assert.Contains(t, string(content), "repo: phpboyscout/test-tool")
+	assert.Contains(t, string(content), "owner: phpboyscout")
 	assert.Contains(t, string(content), "repo: test-tool")
 	assert.Contains(t, string(content), "gtb: v1.2.3")
 

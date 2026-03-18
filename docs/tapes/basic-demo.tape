@@ -33,7 +33,7 @@ Sleep 500ms
 Type "my-cli" Enter
 Sleep 500ms
 # GitHub Repository
-Type "ptps/my-cli" Enter
+Type "phpboyscout/my-cli" Enter
 Sleep 500ms
 # Git Host (default)
 Enter

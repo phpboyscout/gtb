@@ -4,7 +4,7 @@ A comprehensive Go framework for building mission-critical CLI tools. GTB provid
 
 > [!IMPORTANT]
 > **Full Documentation**: For detailed guides, component deep-dives, and API references, please visit our documentation site:
-> **[https://pages.github.com/ptps/gtb/](https://pages.github.com/ptps/gtb/)**
+> **[https://gtb.phpboyscout.uk](https://gtb.phpboyscout.uk)**
 
 ## 📦 CLI Installation
 
@@ -12,13 +12,13 @@ To install the `gtb` automation CLI, use the recommended installation script for
 
 **macOS/Linux (bash/zsh):**
 ```bash
-curl -sSL -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github.v3.raw" "https://github.com/ptps/gtb/raw/main/install.sh" | bash
+curl -sSL -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github.v3.raw" "https://github.com/phpboyscout/gtb/raw/main/install.sh" | bash
 ```
 
 **Windows (PowerShell):**
 ```powershell
 $env:GITHUB_TOKEN = "your_token_here"
-irm "https://github.com/ptps/gtb/raw/main/install.ps1" -Headers @{Authorization = "Bearer $env:GITHUB_TOKEN"} | iex
+irm "https://github.com/phpboyscout/gtb/raw/main/install.ps1" -Headers @{Authorization = "Bearer $env:GITHUB_TOKEN"} | iex
 ```
 
 > [!NOTE]

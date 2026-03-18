@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	testRepo   = "/home/mcockayne/workspace/ptps/gtb"
+	testRepo   = "/home/mcockayne/workspace/phpboyscout/gtb"
 	testBranch = "main"
 	testConfig = `github:
   url:
@@ -38,9 +38,9 @@ var (
 train:
   memory:
     enabled: true
-    repo: "/home/mcockayne/workspace/ptps/gtb"
+    repo: "/home/mcockayne/workspace/phpboyscout/gtb"
   source:
-    org: ptps
+    org: phpboyscout
     repo: gtb
     branch: main
 `

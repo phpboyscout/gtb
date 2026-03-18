@@ -29,7 +29,7 @@ func TestGenerateSkeleton(t *testing.T) {
 	ctx := context.Background()
 	config := SkeletonConfig{
 		Name:        "test-project",
-		Repo:        "ptps/test-project",
+		Repo:        "phpboyscout/test-project",
 		Host:        "github.com",
 		Description: "A test project",
 		Path:        "/work",
@@ -66,9 +66,9 @@ func TestGenerateSkeleton(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "test-project", m.Properties.Name)
-	assert.Equal(t, "ptps/test-project", m.Properties.Repo)
+	assert.Equal(t, "phpboyscout/test-project", m.Properties.Repo)
 	assert.Equal(t, "github", m.ReleaseSource.Type)
-	assert.Equal(t, "ptps", m.ReleaseSource.Owner)
+	assert.Equal(t, "phpboyscout", m.ReleaseSource.Owner)
 	assert.Equal(t, "test-project", m.ReleaseSource.Repo)
 
 	featureNames := []string{}
@@ -87,7 +87,7 @@ func TestGenerateSkeleton(t *testing.T) {
 	content := string(rootCmdContent)
 	assert.Contains(t, content, "ReleaseSource: props.ReleaseSource{")
 	assert.Contains(t, content, "Type:  \"github\"")
-	assert.Contains(t, content, "Owner: \"ptps\"")
+	assert.Contains(t, content, "Owner: \"phpboyscout\"")
 	assert.Contains(t, content, "Repo:  \"test-project\"")
 }
 

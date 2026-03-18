@@ -35,7 +35,7 @@ func NewCmdRoot(v ver.Info) (*cobra.Command, *props.Props) {
 			Description: "A CLI tool for managing and generating gtb projects.",
 			ReleaseSource: props.ReleaseSource{
 				Type:  "github",
-				Owner: "ptps",
+				Owner: "phpboyscout",
 				Repo:  "gtb",
 			},
 			Features: props.SetFeatures(
