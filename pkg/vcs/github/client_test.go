@@ -29,7 +29,7 @@ train:
 `
 
 const (
-	GitHubOrg  = "ptps"
+	GitHubOrg  = "phpboyscout"
 	GitHubRepo = "gtb"
 )
 

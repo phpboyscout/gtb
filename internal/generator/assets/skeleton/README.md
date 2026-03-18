@@ -1,6 +1,6 @@
 # {{ .Name }}
 
-{{ .Name }} is a tool built with [gtb](https://github.com/ptps/gtb).
+{{ .Name }} is a tool built with [gtb](https://github.com/phpboyscout/gtb).
 
 ## Installation
 
