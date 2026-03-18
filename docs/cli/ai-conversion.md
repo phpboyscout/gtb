@@ -50,11 +50,13 @@ The conversion engine supports multiple AI providers, giving you the flexibility
 
 ### Supported Providers
 
-| Provider | Default Model | Env Var for API Key |
-| :--- | :--- | :--- |
-| **OpenAI** (Default) | `gpt-5.2` | `OPENAI_API_KEY` |
-| **Claude** | `claude-sonnet-4-5` | `ANTHROPIC_API_KEY` |
-| **Gemini** | `gemini-3-flash-preview` | `GEMINI_API_KEY` |
+| Provider | Value | Default Model | Env Var for API Key |
+| :--- | :--- | :--- | :--- |
+| **OpenAI** (fallback default) | `openai` | `gpt-4o` (current OpenAI default) | `OPENAI_API_KEY` |
+| **Claude** | `claude` | `claude-sonnet-4-5` | `ANTHROPIC_API_KEY` |
+| **Gemini** | `gemini` | `gemini-3-flash-preview` | `GEMINI_API_KEY` |
+| **Claude Local** | `claude-local` | uses local `claude` binary default | none required |
+| **OpenAI-Compatible** | `openai-compatible` | none — must be set explicitly | backend-specific |
 
 ### Configuration ⚙️
 

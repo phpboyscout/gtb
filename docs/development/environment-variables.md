@@ -31,7 +31,7 @@ To simplify local development, GTB automatically looks for a `.env` file in the 
 ```bash
 # AI Configuration
 AI_PROVIDER=openai
-AI_API_KEY=sk-proj-xxxxxxxxxxxx
+OPENAI_API_KEY=sk-proj-xxxxxxxxxxxx
 
 # Logging
 LOG_LEVEL=debug
@@ -57,7 +57,8 @@ AUTH_SKIP_LOGIN=true
 | Variable | Description |
 | :--- | :--- |
 | `LOG_LEVEL` | Sets the logging verbosity (`debug`, `info`, `warn`, `error`). |
-| `AI_PROVIDER` | The AI service to use (`openai`, `gemini`, `claude`). |
-| `AI_API_KEY` | The API key for the selected AI provider. |
-| `AI_ENDPOINT` | (Optional) Override the API endpoint for certain providers. |
+| `AI_PROVIDER` | The AI service to use (`openai`, `claude`, `gemini`, `claude-local`, `openai-compatible`). |
+| `OPENAI_API_KEY` | API key for the OpenAI provider. |
+| `ANTHROPIC_API_KEY` | API key for the Claude (Anthropic) provider. |
+| `GEMINI_API_KEY` | API key for the Gemini (Google) provider. |
 | `AWS_PROFILE` | The AWS profile to use for cloud interactions. |

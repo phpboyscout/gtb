@@ -33,7 +33,7 @@ mytool/
 │           ├── cmd.go      # The Wiring Layer (Cobra/Flags/Deps)
 │           └── main.go     # The Logic Layer (Business logic stubs)
 ├── go.mod                  # Standard Go module definition
-└── Taskfile.yml            # Automation tasks (optional)
+└── justfile                # Automation tasks (optional)
 ```
 
 ## Reasoning Behind the Structure

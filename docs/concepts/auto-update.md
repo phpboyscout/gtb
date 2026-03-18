@@ -39,7 +39,7 @@ The installation follows these steps to bypass this limitation:
 
 1.  **Download**: The platform-specific `.tar.gz` asset is downloaded into memory.
 2.  **Extract**: The binary is extracted from the archive.
-3.  **Temp Buffer**: The new binary is written to a temporary file (e.g., `als_`) in the same directory as the current executable.
+3.  **Temp Buffer**: The new binary is written to a temporary file (e.g., `mytool_`) in the same directory as the current executable.
 4.  **Swap**: The temporary file is renamed to the target filename (overwriting the old one), and permissions are set.
 
 By writing to a temporary file first and then performing a rename, we ensure that the update is atomic—either it succeeds completely, or the old binary remains untouched.

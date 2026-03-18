@@ -24,14 +24,14 @@ The `docs` component was created with a specific vision:
 
 The `docs` command launches a feature-rich Terminal User Interface (TUI) powered by **Bubble Tea**. It provides:
 
-- **Sidebar Navigation**: Automatically parsed from your tool's `mkdocs.yml` structure.
+- **Sidebar Navigation**: Automatically parsed from your tool's `zensical.toml` (or `mkdocs.yml`) structure.
 - **Rich Rendering**: Markdown is rendered with full color and styling using **Glamour**.
 - **Instant Search**: Find content across all pages, including support for Regex queries.
 - **Integrated Sidebar**: Toggle between the page tree and the content view seamlessly.
 
 ### 2. AI Documentation Assistant (`ask`)
 
-The most transformative feature is the `docs ask` subcommand. By integrating with your configured AI provider (OpenAI, Claude, or Gemini):
+The most transformative feature is the `docs ask` subcommand. By integrating with your configured AI provider (OpenAI, Claude, Gemini, Claude Local, or any OpenAI-compatible endpoint):
 
 - **Universal Context**: The framework automatically collates all local Markdown files as context for the model.
 - **Direct Answers**: Instead of searching for "how to configure X", users just ask the question and get a precise, technical response.

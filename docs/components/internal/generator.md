@@ -57,7 +57,7 @@ sequenceDiagram
 -   **Jennifer & Templates**: We use a hybrid approach.
     -   `github.com/dave/jennifer` is used for generating complex Go files where imports need to be managed dynamically (though `skeleton.go` currently uses our own tempaltes).
     -   `text/template` is used for static boilerplate and config files.
--   **Asset Embed**: The `assets/skeleton` directory is embedded into the binary using `//go:embed`. This allows the CLI to operate as a single static binary without needing external resource files.
+-   **Asset Embed**: The `assets/skeleton`, `assets/skeleton-github`, and `assets/skeleton-gitlab` directories are all embedded into the binary using `//go:embed`. The common assets in `assets/skeleton` are always applied; VCS-specific assets (`skeleton-github` or `skeleton-gitlab`) are selected based on the `--git-backend` flag. This allows the CLI to operate as a single static binary without needing external resource files.
 
 ### Generated Files Reference
 
@@ -67,7 +67,7 @@ The following files are copied verbatim (or rendered as templates) from the embe
 -   `.gitignore`: Standard Go ignore patterns.
 -   `.golangci.yaml`: Strict linting configuration.
 -   `.mockery.yml`: Mock generation config.
--   `Taskfile.yml`: Development task runner definitions.
+-   `justfile`: Development task runner definitions (replaces the legacy `Taskfile.yml`).
 -   `go.mod`: Go module definition (templated).
 
 #### CI/CD & Automation (`.github/`)
@@ -77,10 +77,10 @@ The following files are copied verbatim (or rendered as templates) from the embe
 -   `workflows/test.yaml`: CI unit tests with race detection.
 -   `workflows/goreleaser.yaml`: Release automation.
 -   `workflows/semantic-release.yaml`: Automated versioning.
--   `workflows/mkdocs.yaml`: Documentation publishing.
+-   `workflows/docs.yaml`: Documentation publishing (GitHub) or `.gitlab/ci/pages.yml` (GitLab).
 
 #### Documentation (`docs/`)
--   `mkdocs.yml`: Documentation site configuration (Material theme).
+-   `zensical.toml`: Documentation site configuration (Zensical/MkDocs-Material).
 -   `docs/index.md`: Placeholder landing page.
 -   `catalog-info.yaml`: Backstage catalog metadata.
 
