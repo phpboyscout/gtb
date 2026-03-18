@@ -53,7 +53,7 @@ Features register themselves with the framework during package `init()`. This al
 A feature can register three things:
 
 1. **Initialisers**: Logic to check and perform setup. These are executed by the main `init` command if the feature is enabled and not yet configured.
-2. **Subcommands**: Standalone `init <feature>` commands. These are intended for **forced reconfiguration**. While the root `init` command will skip a feature if it's already configured, running the specific subcommand (e.g., `als init ai`) will trigger the setup process regardless of the current state.
+2. **Subcommands**: Standalone `init <feature>` commands. These are intended for **forced reconfiguration**. While the root `init` command will skip a feature if it's already configured, running the specific subcommand (e.g., `mytool init ai`) will trigger the setup process regardless of the current state.
 3. **Flags**: Feature-specific flags (like `--skip-ai`) added to the main `init` command.
 
 ```mermaid
@@ -69,7 +69,7 @@ graph TD
 
 ## How it works at Runtime
 
-1. When you run `als init`, the framework fetches all registered items from the **Global Setup Registry**.
+1. When you run `mytool init`, the framework fetches all registered items from the **Global Setup Registry**.
 2. It filters these items based on `props.Tool.IsEnabled(feature)`.
 3. It dynamically attaches any registered **Flags** to the `init` command.
 4. During execution, it iterates through the **Initialisers**. If `IsConfigured()` returns false (and the feature isn't explicitly skipped via a flag), it calls `Configure()`.

@@ -74,7 +74,7 @@ Two built-in implementations are provided:
 // Slack support channel
 props.Tool.Help = errorhandling.SlackHelp{
     Team:    "Engineering",
-    Channel: "#als-tool-support",
+    Channel: "#mytool-support",
 }
 
 // Microsoft Teams support channel

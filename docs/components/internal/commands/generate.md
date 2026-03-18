@@ -27,8 +27,8 @@ Available Commands:
 
 Flags:
   -h, --help              help for generate
-      --model string      AI model to use (defaults: gemini-3-flash-preview, claude-sonnet-4-5)
-      --provider string   AI provider to use (openai/gemini/claude)
+      --model string      AI model to use (per-provider defaults apply when omitted)
+      --provider string   AI provider to use (openai/claude/gemini/claude-local/openai-compatible)
 
 Global Flags:
       --ci                   flag to indicate the tools is running in a CI environment
@@ -53,11 +53,13 @@ Aliases:
 Flags:
   -d, --description string   Project description (default "A tool built with gtb")
   -f, --features strings     Features to enable (init, update, mcp, docs) (default [init,update,mcp,docs])
+      --git-backend string   Git backend (github or gitlab) (default "github")
+      --go-version string    Go version for go.mod (defaults to the running toolchain version)
   -h, --help                 help for skeleton
       --host string          Git Host (e.g. github.com) (default "github.com")
-  -n, --name string          Project name (e.g. als)
+  -n, --name string          Project name (e.g. mytool)
   -p, --path string          Destination path (default ".")
-  -r, --repo string          GitHub repository (e.g. ptps/als)
+  -r, --repo string          Git repository (e.g. myorg/mytool)
 ```
 
 ### Command
@@ -150,7 +152,7 @@ Generates documentation for a command using AI analysis of the source code.
 
 ```text
 Generate comprehensive Markdown documentation for a Go command using AI.
-This command analyzes the source code of the specified command and uses the AI integration to generate docs following MkDocs conventions.
+This command analyzes the source code of the specified command and uses the AI integration to generate docs following Zensical/MkDocs conventions.
 
 Examples:
   # Generate docs for a command

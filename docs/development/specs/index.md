@@ -322,7 +322,7 @@ status: implemented
 | `REJECTED` | `rejected` | Rejected | :material-close-circle: |
 | `DEPRECATED` | `deprecated` | Deprecated | :material-archive: |
 
-Icons and tooltips are configured in `mkdocs.yml` under `extra.status` with styles in `docs/stylesheets/extra.css`.
+Icons and tooltips are configured in `zensical.toml` (or `mkdocs.yml` for legacy setups) under `extra.status` with styles in `docs/stylesheets/extra.css`.
 
 ### Handling Rejections
 

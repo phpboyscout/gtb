@@ -66,7 +66,7 @@ Each AI provider has its own characteristics. This section provides guidance for
 
 ### OpenAI
 
-OpenAI is the default provider and offers excellent general-purpose performance.
+OpenAI offers excellent general-purpose performance. It is the fallback provider when no `AI_PROVIDER` environment variable or `ai.provider` config key is set.
 
 **Recommended Models:**
 

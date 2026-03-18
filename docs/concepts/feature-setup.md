@@ -8,7 +8,7 @@ authors: [Matt Cockayne <matt@phpboyscout.com>]
 
 # Feature Setup & Registry
 
-GTB uses a modular setup and registration pattern to decouple core framework logic from domain-specific features. This allows applications like `als` to scale by adding new capabilities without modifying the central root command or initialization flow.
+GTB uses a modular setup and registration pattern to decouple core framework logic from domain-specific features. This allows applications built with GTB to scale by adding new capabilities without modifying the central root command or initialization flow.
 
 ## The Feature Registry
 

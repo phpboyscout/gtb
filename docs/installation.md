@@ -1,6 +1,6 @@
 ---
 title: Installation
-description: Installation instructions for GTB and private module configuration.
+description: Installation instructions for GTB.
 date: 2026-02-16
 tags: [installation, setup, configuration]
 authors: [Matt Cockayne <matt@phpboyscout.com>]
@@ -17,26 +17,9 @@ GTB is a Go library designed to be imported into your CLI tool projects. There a
 Before using GTB, ensure you have:
 
 - **Go 1.21 or later** installed (generated projects may target newer versions like Go 1.24+)
-- Access to the Git repository (github.com)
-- Properly configured Go environment for private modules
 
 !!! info "Go Version in Generated Projects"
     While GTB itself requires Go 1.21+, the `generate skeleton` command creates projects configured for Go 1.24+ to take advantage of the latest [tool directive](https://go.dev/doc/modules/managing-dependencies#tools) features.
-
-## Private Module Configuration
-
-Since GTB is hosted on a private Git server, you'll need to configure your Go environment:
-
-```bash
-# Configure Git to use authentication for private repositories
-git config --global --replace-all url."https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com".insteadOf "https://github.com"
-
-# Set GOPRIVATE to include the private module path
-go env -w GOPRIVATE=github.com
-```
-
-- `GITHUB_USERNAME` - Your GitHub username
-- `GITHUB_TOKEN` - Your GitHub personal access token with appropriate permissions
 
 ## CLI Installation
 
@@ -45,7 +28,7 @@ The recommended way to install the `gtb` CLI is using our pre-built release bina
 ### Linux/macOS
 
 ```bash
-curl -sSL -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github.v3.raw" "https://github.com/ptps/gtb/raw/main/install.sh" | bash
+curl -sSL "https://github.com/phpboyscout/gtb/raw/main/install.sh" | bash
 ```
 
 !!! note
@@ -54,8 +37,7 @@ curl -sSL -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd
 ### Windows (PowerShell)
 
 ```powershell
-$env:GITHUB_TOKEN = "your_token_here"
-irm "https://github.com/ptps/gtb/raw/main/install.ps1" -Headers @{Authorization = "Bearer $env:GITHUB_TOKEN"; Accept = "application/vnd.github.v3.raw"} | iex
+irm "https://github.com/phpboyscout/gtb/raw/main/install.ps1" | iex
 ```
 
 ### From Source (go install)
@@ -197,15 +179,10 @@ Once installation is complete:
 
 **Import errors:**
 
-- Verify your `GOPRIVATE` setting includes `github.com`
-- Ensure your GitHub token has access to the repository
+- Ensure your Go environment is set up correctly (`go env GOPATH`)
+- Run `go mod tidy` to resolve dependencies
 
 **Build failures:**
 
 - Check that you're using Go 1.21 or later
 - Run `go mod tidy` to resolve dependencies
-
-**Authentication errors:**
-
-- Verify your Git configuration for the private repository
-- Test access with: `git clone https://github.com/phpboyscout/gtb.git`

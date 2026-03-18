@@ -19,7 +19,7 @@ authors: [Matt Cockayne <matt@phpboyscout.com>]
 - Git configured for private repositories
 - golangci-lint for code quality checks
 - mockery for generating mocks (if modifying interfaces)
-- [Task](https://taskfile.dev/) (for running build scripts)
+- [just](https://just.systems/) (for running build scripts)
 
 ### Clone and Setup
 
@@ -31,7 +31,7 @@ cd gtb
 go mod download
 
 # Verify setup
-task build
+just build
 # Or manually:
 go build ./...
 go test ./...
@@ -74,7 +74,7 @@ gtb/
 │   ├── utils/              # Common utility functions
 │   └── vcs/                # Version control (Git) utilities
 ├── main.go                 # CLI entry point
-└── Taskfile.yml            # Build and automation tasks
+└── justfile                # Build and automation tasks
 ```
 
 ## Development Workflow

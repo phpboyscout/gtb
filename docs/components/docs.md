@@ -20,7 +20,7 @@ The generation engine is invoked via `generate docs`. It uses an agentic AI loop
 
 - **Parse Source**: Extracts metadata from command registration and implementation files.
 - **Resolve Hierarchy**: Maps CLI command structures (e.g., `parent/child`) to matching filesystem structures (`docs/commands/parent/child/node.md`).
-- **Index Management**: Automatically discovers and links new documentation nodes into the global navigation (`mkdocs.yml`) and specialized index pages.
+- **Index Management**: Automatically discovers and links new documentation nodes into the global navigation (`zensical.toml` / `mkdocs.yml`) and specialized index pages.
 
 ### 2. TUI & Ask Interface (Run-Time)
 
@@ -44,7 +44,7 @@ When documenting commands, the system follows these placement rules:
 - **Subcommands**: `docs/commands/[parent]/[child]/index.md`
 - **Packages**: `docs/packages/[path]/[name].md`
 
-This structure ensures that MkDocs remains organized and that navigation mirrors the actual CLI structure.
+This structure ensures that the documentation site remains organized and that navigation mirrors the actual CLI structure.
 
 ### Example Implementation
 

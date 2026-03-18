@@ -27,8 +27,8 @@ Documentation builds are handled by a portable Go generator. When called from a 
 This tool:
 - **Dual Content Sync**: Simultaneously synchronizes raw markdown for the TUI and builds a static site for `docs serve`.
 - **Auto-Detection**: Automatically uses `zensical` (preferred) or `mkdocs` if available.
-- **Configurable**: 
-    - `--project-root`: Point to your project sources (e.g., where `mkdocs.yml` lives).
+- **Configurable**:
+    - `--project-root`: Point to your project sources (e.g., where `zensical.toml` or `mkdocs.yml` lives).
     - `--target-dir`: Specify where `assets/docs` and `assets/site` should be generated.
 
 ### 2. Command Documentation 🕹️
@@ -37,7 +37,7 @@ This command:
 
 - **Agentic Inspection**: Uses AI tools to explore subcommands and referenced types autonomously.
 - **Intelligent Formatting**: Produces structured Markdown with frontmatter, usage examples, and flag tables.
-- **Smart Indexing**: Updates `docs/commands/index.md` and your `mkdocs.yml` navigation automatically!
+- **Smart Indexing**: Updates `docs/commands/index.md` and your site navigation (`zensical.toml` / `mkdocs.yml`) automatically!
 
 ### 2. Package Documentation 📦
 

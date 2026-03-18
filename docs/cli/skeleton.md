@@ -44,7 +44,7 @@ my-awesome-tool/
 ├── .gtb/manifest.yaml          # The Brain: Tracks your command hierarchy
 ├── cmd/my-awesome-tool/main.go # Entry Point: The main function of your tool
 ├── pkg/cmd/root/cmd.go         # The Root: Setup and registration of all commands
-├── docs/                       # Documentation: Your project's mkdocs site
+├── docs/                       # Documentation: Your project's documentation site
 ├── go.mod                      # Dependencies: Uses Go 1.24+ tool directives
 └── README.md                   # Welcome: Basic info about your new tool
 ```
