@@ -44,6 +44,44 @@ type SkeletonConfig struct {
 	TeamsTeam    string
 }
 
+func releaseProviderForHost(host string) string {
+	if strings.Contains(host, "gitlab") {
+		return "gitlab"
+	}
+
+	return "github"
+}
+
+func (g *Generator) currentVersion() string {
+	if g.props.Version != nil {
+		return g.props.Version.GetVersion()
+	}
+
+	return ""
+}
+
+func resolveGoVersion(configured string) string {
+	if configured != "" {
+		return configured
+	}
+
+	return strings.TrimPrefix(runtime.Version(), "go")
+}
+
+func (g *Generator) runSkeletonPostProcessing(ctx context.Context, path string) {
+	g.props.Logger.Info("Running go mod tidy...")
+
+	if err := g.runSkeletonCommand(ctx, path, "go", "mod", "tidy"); err != nil {
+		g.props.Logger.Warn("Failed to run go mod tidy", "error", err)
+	}
+
+	g.props.Logger.Info("Running golangci-lint run --fix...")
+
+	if err := g.runSkeletonCommand(ctx, path, "golangci-lint", "run", "--fix"); err != nil {
+		g.props.Logger.Warn("Failed to run golangci-lint", "error", err)
+	}
+}
+
 func (g *Generator) GenerateSkeleton(ctx context.Context, config SkeletonConfig) error {
 	g.props.Logger.Infof("Generating skeleton for %s in %s...", config.Name, config.Path)
 
@@ -81,41 +119,23 @@ func (g *Generator) GenerateSkeleton(ctx context.Context, config SkeletonConfig)
 		TeamsChannel      string
 		TeamsTeam         string
 	}{
-		Name:        config.Name,
-		Repo:        config.Repo,
-		Host:        config.Host,
-		ModulePath:  fmt.Sprintf("%s/%s", config.Host, config.Repo),
-		Description: config.Description,
-		Org:         parts[0],
-		RepoName:    parts[1],
-		ReleaseProvider: func() string {
-			if strings.Contains(config.Host, "gitlab") {
-				return "gitlab"
-			}
-
-			return "github"
-		}(),
-		GoToolBaseVersion: func() string {
-			if g.props.Version != nil {
-				return g.props.Version.GetVersion()
-			}
-
-			return ""
-		}(),
-		GoVersion: func() string {
-			if config.GoVersion != "" {
-				return config.GoVersion
-			}
-
-			return strings.TrimPrefix(runtime.Version(), "go")
-		}(),
-		DisabledFeatures: calculateDisabledFeatures(config.Features),
-		EnabledFeatures:  calculateEnabledFeatures(config.Features),
-		HelpType:         config.HelpType,
-		SlackChannel:     config.SlackChannel,
-		SlackTeam:        config.SlackTeam,
-		TeamsChannel:     config.TeamsChannel,
-		TeamsTeam:        config.TeamsTeam,
+		Name:              config.Name,
+		Repo:              config.Repo,
+		Host:              config.Host,
+		ModulePath:        fmt.Sprintf("%s/%s", config.Host, config.Repo),
+		Description:       config.Description,
+		Org:               parts[0],
+		RepoName:          parts[1],
+		ReleaseProvider:   releaseProviderForHost(config.Host),
+		GoToolBaseVersion: g.currentVersion(),
+		GoVersion:         resolveGoVersion(config.GoVersion),
+		DisabledFeatures:  calculateDisabledFeatures(config.Features),
+		EnabledFeatures:   calculateEnabledFeatures(config.Features),
+		HelpType:          config.HelpType,
+		SlackChannel:      config.SlackChannel,
+		SlackTeam:         config.SlackTeam,
+		TeamsChannel:      config.TeamsChannel,
+		TeamsTeam:         config.TeamsTeam,
 	}
 
 	if err := g.generateSkeletonGoFiles(config.Path, data); err != nil {
@@ -130,19 +150,8 @@ func (g *Generator) GenerateSkeleton(ctx context.Context, config SkeletonConfig)
 		return err
 	}
 
-	// Run go mod tidy and golangci-lint if using OS filesystem
 	if _, ok := g.props.FS.(*afero.OsFs); ok {
-		g.props.Logger.Info("Running go mod tidy...")
-
-		if err := g.runSkeletonCommand(ctx, config.Path, "go", "mod", "tidy"); err != nil {
-			g.props.Logger.Warn("Failed to run go mod tidy", "error", err)
-		}
-
-		g.props.Logger.Info("Running golangci-lint run --fix...")
-
-		if err := g.runSkeletonCommand(ctx, config.Path, "golangci-lint", "run", "--fix"); err != nil {
-			g.props.Logger.Warn("Failed to run golangci-lint", "error", err)
-		}
+		g.runSkeletonPostProcessing(ctx, config.Path)
 	}
 
 	g.props.Logger.Infof("Successfully generated skeleton in %s", config.Path)
@@ -213,6 +222,50 @@ func (g *Generator) generateSkeletonGoFiles(destPath string, data struct {
 	return nil
 }
 
+func (g *Generator) walkCommonSkeletonAsset(destPath string, data any, path string, d fs.DirEntry, err error) error {
+	if err != nil {
+		return err
+	}
+
+	if d.IsDir() {
+		return nil
+	}
+
+	relPath, relErr := filepath.Rel("assets/skeleton", path)
+	if relErr != nil {
+		return errors.Newf("failed to get relative path: %w", relErr)
+	}
+
+	content, readErr := skeletonAssets.ReadFile(path)
+	if readErr != nil {
+		return errors.Newf("failed to read embedded file %s: %w", path, readErr)
+	}
+
+	return g.renderSkeletonTemplate(filepath.Join(destPath, relPath), string(content), data)
+}
+
+func (g *Generator) walkProviderSkeletonAsset(destPath, providerRoot string, providerFS embed.FS, data any, path string, d fs.DirEntry, err error) error {
+	if err != nil {
+		return err
+	}
+
+	if d.IsDir() {
+		return nil
+	}
+
+	relPath, relErr := filepath.Rel(providerRoot, path)
+	if relErr != nil {
+		return errors.Newf("failed to get relative path: %w", relErr)
+	}
+
+	content, readErr := providerFS.ReadFile(path)
+	if readErr != nil {
+		return errors.Newf("failed to read embedded provider file %s: %w", path, readErr)
+	}
+
+	return g.renderSkeletonTemplate(filepath.Join(destPath, relPath), string(content), data)
+}
+
 func (g *Generator) generateSkeletonTemplateFiles(destPath string, data any) error {
 	tmplFiles := map[string]string{
 		"pkg/cmd/root/assets/init/config.yaml": templates.SkeletonConfig,
@@ -252,25 +305,7 @@ func (g *Generator) generateSkeletonTemplateFiles(destPath string, data any) err
 
 	// Walk the common skeleton assets.
 	if err := fs.WalkDir(skeletonAssets, "assets/skeleton", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if d.IsDir() {
-			return nil
-		}
-
-		relPath, err := filepath.Rel("assets/skeleton", path)
-		if err != nil {
-			return errors.Newf("failed to get relative path: %w", err)
-		}
-
-		content, err := skeletonAssets.ReadFile(path)
-		if err != nil {
-			return errors.Newf("failed to read embedded file %s: %w", path, err)
-		}
-
-		return g.renderSkeletonTemplate(filepath.Join(destPath, relPath), string(content), data)
+		return g.walkCommonSkeletonAsset(destPath, data, path, d, err)
 	}); err != nil {
 		return err
 	}
@@ -282,25 +317,7 @@ func (g *Generator) generateSkeletonTemplateFiles(destPath string, data any) err
 	}
 
 	return fs.WalkDir(providerFS, providerRoot, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if d.IsDir() {
-			return nil
-		}
-
-		relPath, err := filepath.Rel(providerRoot, path)
-		if err != nil {
-			return errors.Newf("failed to get relative path: %w", err)
-		}
-
-		content, err := providerFS.ReadFile(path)
-		if err != nil {
-			return errors.Newf("failed to read embedded provider file %s: %w", path, err)
-		}
-
-		return g.renderSkeletonTemplate(filepath.Join(destPath, relPath), string(content), data)
+		return g.walkProviderSkeletonAsset(destPath, providerRoot, providerFS, data, path, d, err)
 	})
 }
 
