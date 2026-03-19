@@ -160,7 +160,7 @@ func (g *Gemini) chatNonStreaming(ctx context.Context, chat *genai.Chat, parts [
 
 		if text := resp.Text(); text != "" {
 			textResponse.WriteString(text)
-			g.props.Logger.Info("Gemini Reasoning", "text", text)
+			g.props.Logger.Debug("Gemini Reasoning", "text", text)
 		}
 
 		funcCalls := resp.FunctionCalls()

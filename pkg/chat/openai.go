@@ -289,7 +289,7 @@ func (a *OpenAI) Chat(ctx context.Context, prompt string) (string, error) {
 		a.params.Messages = append(a.params.Messages, msg.ToParam())
 
 		if msg.Content != "" {
-			a.logger.Info("OpenAI Reasoning", "text", msg.Content)
+			a.logger.Debug("OpenAI Reasoning", "text", msg.Content)
 		}
 
 		if len(msg.ToolCalls) > 0 {

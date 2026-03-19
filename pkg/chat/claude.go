@@ -259,7 +259,7 @@ func (c *Claude) logHistory() {
 func (c *Claude) logContent(content []anthropic.ContentBlockUnion) {
 	for _, b := range content {
 		if b.Type == "text" {
-			c.props.Logger.Info("Claude Reasoning", "text", b.Text)
+			c.props.Logger.Debug("Claude Reasoning", "text", b.Text)
 		}
 	}
 }
