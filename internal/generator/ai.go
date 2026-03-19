@@ -26,12 +26,14 @@ func (g *Generator) resolveToken(provider chat.Provider) string {
 	}
 
 	switch provider {
-	case chat.ProviderOpenAI:
+	case chat.ProviderOpenAI, chat.ProviderOpenAICompatible:
 		return g.props.Config.GetString("openai.api.key")
 	case chat.ProviderClaude:
 		return g.props.Config.GetString("anthropic.api.key")
 	case chat.ProviderGemini:
 		return g.props.Config.GetString("gemini.api.key")
+	case chat.ProviderClaudeLocal:
+		return ""
 	default:
 		return ""
 	}
@@ -49,12 +51,14 @@ func (g *Generator) resolveModel(provider chat.Provider) string {
 
 	if model == "" {
 		switch provider {
-		case chat.ProviderOpenAI:
+		case chat.ProviderOpenAI, chat.ProviderOpenAICompatible:
 			model = chat.DefaultModelOpenAI
 		case chat.ProviderGemini:
 			model = chat.DefaultModelGemini
 		case chat.ProviderClaude:
 			model = chat.DefaultModelClaude
+		case chat.ProviderClaudeLocal:
+			// no default model; the claude binary selects its own default
 		}
 	}
 
