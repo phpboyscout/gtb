@@ -79,9 +79,13 @@ formatters:
     goimports:
       local-prefixes:
         - github.com/phpboyscout/gtb
+    gofumpt:
+      module-path: github.com/phpboyscout/gtb
+      extra-rules: true
   exclusions:
     generated: lax
     paths:
       - third_party$
       - builtin$
       - examples$
+
