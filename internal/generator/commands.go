@@ -388,13 +388,10 @@ func (g *Generator) postGenerate(ctx context.Context, data templates.CommandData
 	allFlags := append([]templates.CommandFlag{}, data.Flags...)
 	allFlags = append(allFlags, data.PersistentFlags...)
 
-	g.props.Logger.Info("DEBUG: Before updateManifest")
-
 	if err := g.updateManifest(allFlags, data.Hashes); err != nil {
 		g.props.Logger.Warnf("Failed to update manifest: %v", err)
 	}
 
-	g.props.Logger.Info("DEBUG: Before handleDocumentationGeneration")
 	g.props.Logger.Info("Generating documentation...")
 
 	return g.handleDocumentationGeneration(ctx, data, cmdDir)
