@@ -94,3 +94,19 @@ func Stop(logger *slog.Logger, srv *http.Server) controls.StopFunc {
 
 // Status returns a curried function suitable for use with the controls package.
 func Status() {}
+
+// Register creates a new HTTP server and registers it with the controller under the given id.
+func Register(ctx context.Context, id string, controller controls.Controllable, cfg config.Containable, logger *slog.Logger, handler http.Handler) error {
+	srv, err := NewServer(ctx, cfg, handler)
+	if err != nil {
+		return err
+	}
+
+	controller.Register(id,
+		controls.WithStart(Start(cfg, logger, srv)),
+		controls.WithStop(Stop(logger, srv)),
+		controls.WithStatus(Status),
+	)
+
+	return nil
+}
