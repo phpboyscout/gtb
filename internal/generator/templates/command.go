@@ -696,6 +696,8 @@ func CommandExecution(data CommandData) string {
 		}
 	}
 
+	sb.WriteString("}\n")
+
 	if data.WithInitializer {
 		sb.WriteString("\n")
 		fmt.Fprintf(&sb, "func Init%s(p *props.Props, cfg config.Containable) error {\n", data.PascalName)

@@ -1372,6 +1372,23 @@ func (g *Generator) extractSubcommandOrMeta(call *dst.CallExpr, cmd *ManifestCom
 		return
 	}
 
+	// Handle the generated root pattern: gtbRoot.NewCmdRoot(p, child1.NewCmdX(p), ...)
+	// Any NewCmd* call whose arguments (after the first) are themselves NewCmd* calls
+	// is registering subcommands, not via AddCommand but as variadic args.
+	if strings.HasPrefix(target, "NewCmd") && len(call.Args) > 1 {
+		for _, arg := range call.Args[1:] {
+			if subCall, ok := arg.(*dst.CallExpr); ok {
+				subName, subPkgAlias := getCallInfo(subCall)
+				if strings.HasPrefix(subName, "NewCmd") {
+					fqName := g.getFullyQualifiedName(subName, subPkgAlias, imports, currentPkgPath)
+					*subcommandFuncs = append(*subcommandFuncs, fqName)
+				}
+			}
+		}
+
+		return
+	}
+
 	// Handle MarkFlagRequired etc.
 	g.extractMarkRequiredOrHidden(call, cmd, target)
 }
@@ -1570,4 +1587,240 @@ func (g *Generator) parseFlagExtras(call *dst.CallExpr, flag *ManifestFlag, base
 			flag.Warning = "WARNING: could not resolve default value: " + flag.Default
 		}
 	}
+}
+
+// extractProjectProperties parses pkg/cmd/root/cmd.go and extracts project-level
+// metadata (name, description, release source, features) from the &props.Props{Tool: ...}
+// composite literal inside the NewCmdRoot constructor.
+func (g *Generator) extractProjectProperties(rootCmdPath string) (*ManifestProperties, *ManifestReleaseSource, error) {
+	src, err := afero.ReadFile(g.props.FS, rootCmdPath)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	f, err := decorator.Parse(src)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var targetFunc *dst.FuncDecl
+
+	for _, decl := range f.Decls {
+		if fn, ok := decl.(*dst.FuncDecl); ok && fn.Name.Name == "NewCmdRoot" {
+			targetFunc = fn
+			break
+		}
+	}
+
+	if targetFunc == nil {
+		return nil, nil, errors.New("NewCmdRoot not found in root cmd.go")
+	}
+
+	for _, stmt := range targetFunc.Body.List {
+		assign, ok := stmt.(*dst.AssignStmt)
+		if !ok {
+			continue
+		}
+
+		for _, rhs := range assign.Rhs {
+			mp, rs, propErr := tryExtractPropsLiteral(rhs)
+			if propErr == nil && mp != nil {
+				return mp, rs, nil
+			}
+		}
+	}
+
+	return nil, nil, errors.New("props.Props literal not found in NewCmdRoot")
+}
+
+// tryExtractPropsLiteral attempts to pull ManifestProperties and ManifestReleaseSource
+// from a &props.Props{...} composite literal expression.
+func tryExtractPropsLiteral(expr dst.Expr) (*ManifestProperties, *ManifestReleaseSource, error) {
+	unary, ok := expr.(*dst.UnaryExpr)
+	if !ok {
+		return nil, nil, errors.New("not a unary expr")
+	}
+
+	comp, ok := unary.X.(*dst.CompositeLit)
+	if !ok {
+		return nil, nil, errors.New("not a composite lit")
+	}
+
+	if !isTypeName(comp.Type, "Props") {
+		return nil, nil, errors.New("not Props")
+	}
+
+	for _, elt := range comp.Elts {
+		kv, ok := elt.(*dst.KeyValueExpr)
+		if !ok {
+			continue
+		}
+
+		key, ok := kv.Key.(*dst.Ident)
+		if !ok || key.Name != "Tool" {
+			continue
+		}
+
+		toolComp, ok := kv.Value.(*dst.CompositeLit)
+		if !ok {
+			return nil, nil, errors.New("Tool value is not a composite lit")
+		}
+
+		return extractFromToolLiteral(toolComp)
+	}
+
+	return nil, nil, errors.New("Tool field not found in Props literal")
+}
+
+func extractFromToolLiteral(comp *dst.CompositeLit) (*ManifestProperties, *ManifestReleaseSource, error) {
+	mp := &ManifestProperties{}
+	rs := &ManifestReleaseSource{}
+
+	for _, elt := range comp.Elts {
+		kv, ok := elt.(*dst.KeyValueExpr)
+		if !ok {
+			continue
+		}
+
+		key, ok := kv.Key.(*dst.Ident)
+		if !ok {
+			continue
+		}
+
+		switch key.Name {
+		case "Name":
+			if v, ok := stringLitValue(kv.Value); ok {
+				mp.Name = v
+			}
+		case "Description":
+			if v, ok := stringLitValue(kv.Value); ok {
+				mp.Description = MultilineString(v)
+			}
+		case "Features":
+			mp.Features = extractFeaturesFromSetFeatures(kv.Value)
+		case "ReleaseSource":
+			if inner, ok := kv.Value.(*dst.CompositeLit); ok {
+				extractReleaseSourceLiteral(inner, rs)
+			}
+		}
+	}
+
+	return mp, rs, nil
+}
+
+func extractReleaseSourceLiteral(comp *dst.CompositeLit, rs *ManifestReleaseSource) {
+	for _, elt := range comp.Elts {
+		kv, ok := elt.(*dst.KeyValueExpr)
+		if !ok {
+			continue
+		}
+
+		key, ok := kv.Key.(*dst.Ident)
+		if !ok {
+			continue
+		}
+
+		v, ok := stringLitValue(kv.Value)
+		if !ok {
+			continue
+		}
+
+		switch key.Name {
+		case "Type":
+			rs.Type = v
+		case "Host":
+			rs.Host = v
+		case "Owner":
+			rs.Owner = v
+		case "Repo":
+			rs.Repo = v
+		}
+	}
+}
+
+// extractFeaturesFromSetFeatures parses props.SetFeatures(props.Enable/Disable(...), ...)
+// and returns a ManifestFeature slice. Starts from all-enabled defaults and applies
+// each Enable/Disable mutation found in the call arguments.
+func extractFeaturesFromSetFeatures(expr dst.Expr) []ManifestFeature {
+	featureOrder := []string{"init", "update", "mcp", "docs"}
+	enabled := map[string]bool{
+		"init":   true,
+		"update": true,
+		"mcp":    true,
+		"docs":   true,
+	}
+
+	constToFeature := map[string]string{
+		"InitCmd":   "init",
+		"UpdateCmd": "update",
+		"McpCmd":    "mcp",
+		"DocsCmd":   "docs",
+	}
+
+	if call, ok := expr.(*dst.CallExpr); ok {
+		for _, arg := range call.Args {
+			mutCall, ok := arg.(*dst.CallExpr)
+			if !ok {
+				continue
+			}
+
+			sel, ok := mutCall.Fun.(*dst.SelectorExpr)
+			if !ok {
+				continue
+			}
+
+			action := sel.Sel.Name
+			if action != "Enable" && action != "Disable" {
+				continue
+			}
+
+			if len(mutCall.Args) == 0 {
+				continue
+			}
+
+			var constName string
+
+			switch a := mutCall.Args[0].(type) {
+			case *dst.SelectorExpr:
+				constName = a.Sel.Name
+			case *dst.Ident:
+				constName = a.Name
+			}
+
+			if feat, ok := constToFeature[constName]; ok {
+				enabled[feat] = action == "Enable"
+			}
+		}
+	}
+
+	features := make([]ManifestFeature, 0, len(featureOrder))
+	for _, name := range featureOrder {
+		features = append(features, ManifestFeature{Name: name, Enabled: enabled[name]})
+	}
+
+	return features
+}
+
+// isTypeName reports whether expr refers to the given simple type name,
+// matching both bare identifiers (Props) and selector expressions (props.Props).
+func isTypeName(expr dst.Expr, name string) bool {
+	if id, ok := expr.(*dst.Ident); ok {
+		return id.Name == name
+	}
+
+	if sel, ok := expr.(*dst.SelectorExpr); ok {
+		return sel.Sel.Name == name
+	}
+
+	return false
+}
+
+// stringLitValue extracts the unquoted value from a basic string literal node.
+func stringLitValue(expr dst.Expr) (string, bool) {
+	lit, ok := expr.(*dst.BasicLit)
+	if !ok {
+		return "", false
+	}
+
+	return strings.Trim(lit.Value, "`\""), true
 }
