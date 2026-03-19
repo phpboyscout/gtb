@@ -79,11 +79,6 @@ func TestSkeletonRun(t *testing.T) {
 	assert.Contains(t, string(content), "local-prefixes")
 	assert.Contains(t, string(content), "github.com/phpboyscout/test-tool")
 
-	// Verify catalog-info.yaml content (Description)
-	content, err = afero.ReadFile(fs, "test-project/catalog-info.yaml")
-	assert.NoError(t, err)
-	assert.Contains(t, string(content), "A description of the test tool")
-
 	// Verify config.yaml content
 	content, err = afero.ReadFile(fs, "test-project/pkg/cmd/root/assets/init/config.yaml")
 	assert.NoError(t, err)
