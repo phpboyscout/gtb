@@ -15,6 +15,13 @@ import (
 	"github.com/phpboyscout/gtb/pkg/utils"
 )
 
+// flagFieldCount is the number of colon-separated fields in a serialised flag string.
+const (
+	flagFieldCount     = 8
+	flagTypeIdx        = 1
+	flagDescriptionIdx = 2
+)
+
 type CommandOptions struct {
 	Name             string
 	Short            string
@@ -53,7 +60,7 @@ type FlagFormInput struct {
 }
 
 // toFlagString serializes a FlagFormInput to the colon-delimited format
-// expected by the generator: name:type:desc:persistent:shorthand:required:default:defaultIsCode
+// expected by the generator: name:type:desc:persistent:shorthand:required:default:defaultIsCode.
 func (fi *FlagFormInput) toFlagString() string {
 	return strings.Join([]string{
 		fi.Name,
@@ -371,17 +378,17 @@ func flagsSummary(flags []string) string {
 	fmt.Fprintf(&sb, "Flags added so far (%d):\n", len(flags))
 
 	for _, f := range flags {
-		parts := strings.SplitN(f, ":", 8)
+		parts := strings.SplitN(f, ":", flagFieldCount)
 		name := parts[0]
 		flagType := "string"
 		desc := ""
 
-		if len(parts) > 1 {
-			flagType = parts[1]
+		if len(parts) > flagTypeIdx {
+			flagType = parts[flagTypeIdx]
 		}
 
-		if len(parts) > 2 {
-			desc = parts[2]
+		if len(parts) > flagDescriptionIdx {
+			desc = parts[flagDescriptionIdx]
 		}
 
 		if desc != "" {

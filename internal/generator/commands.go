@@ -552,42 +552,12 @@ func (g *Generator) GenerateCommandFile(ctx context.Context, cmdDir string, data
 
 	data.Hashes["cmd.go"] = hash
 
-	mainFile := filepath.Join(cmdDir, "main.go")
-
-	exists, _ := afero.Exists(g.props.FS, mainFile)
-	if !exists || g.config.Force {
-		g.props.Logger.Infof("Writing execution file: %s", mainFile)
-
-		if err := g.generateExecutionFile(ctx, cmdDir, *data); err != nil {
-			return err
-		}
-	} else {
-		// main.go is being preserved — inject any hook stubs that the options
-		// require but that don't yet exist in the file.
-		if err := g.ensureHookStubs(ctx, mainFile, *data); err != nil {
-			return err
-		}
+	if err := g.handleExecutionFile(ctx, cmdDir, data); err != nil {
+		return err
 	}
 
-	initFile := filepath.Join(cmdDir, "init.go")
-
-	if data.WithInitializer {
-		g.props.Logger.Infof("Writing initializer file: %s", initFile)
-
-		hash, err := g.generateInitializerFile(cmdDir, *data)
-		if err != nil {
-			return err
-		}
-
-		data.Hashes["init.go"] = hash
-	} else if exists, _ := afero.Exists(g.props.FS, initFile); exists {
-		g.props.Logger.Infof("Removing initializer file: %s", initFile)
-
-		if err := g.props.FS.Remove(initFile); err != nil {
-			return errors.Newf("failed to remove initializer file: %w", err)
-		}
-
-		delete(data.Hashes, "init.go")
+	if err := g.handleInitializerFile(cmdDir, data); err != nil {
+		return err
 	}
 
 	if data.TestCode != "" {
@@ -730,6 +700,50 @@ func (g *Generator) generateExecutionFile(ctx context.Context, cmdDir string, da
 	return nil
 }
 
+func (g *Generator) handleExecutionFile(ctx context.Context, cmdDir string, data *templates.CommandData) error {
+	mainFile := filepath.Join(cmdDir, "main.go")
+
+	exists, _ := afero.Exists(g.props.FS, mainFile)
+	if !exists || g.config.Force {
+		g.props.Logger.Infof("Writing execution file: %s", mainFile)
+
+		return g.generateExecutionFile(ctx, cmdDir, *data)
+	}
+
+	// main.go is being preserved — inject any hook stubs that the options
+	// require but that don't yet exist in the file.
+	return g.ensureHookStubs(ctx, mainFile, *data)
+}
+
+func (g *Generator) handleInitializerFile(cmdDir string, data *templates.CommandData) error {
+	initFile := filepath.Join(cmdDir, "init.go")
+
+	if data.WithInitializer {
+		g.props.Logger.Infof("Writing initializer file: %s", initFile)
+
+		hash, err := g.generateInitializerFile(cmdDir, *data)
+		if err != nil {
+			return err
+		}
+
+		data.Hashes["init.go"] = hash
+
+		return nil
+	}
+
+	if exists, _ := afero.Exists(g.props.FS, initFile); exists {
+		g.props.Logger.Infof("Removing initializer file: %s", initFile)
+
+		if err := g.props.FS.Remove(initFile); err != nil {
+			return errors.Newf("failed to remove initializer file: %w", err)
+		}
+
+		delete(data.Hashes, "init.go")
+	}
+
+	return nil
+}
+
 // ensureHookStubs appends any missing hook function stubs to an existing main.go.
 // It is called when main.go is being preserved (no --force) so that enabling
 // PersistentPreRun, PreRun, or WithInitializer on a subsequent generate doesn't
@@ -855,6 +869,7 @@ func ensureImport(src, importPath string) string {
 	}
 
 	insertAt := idx + closeIdx
+
 	return src[:insertAt] + "\n\t" + quoted + src[insertAt:]
 }
 
