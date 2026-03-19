@@ -2,6 +2,7 @@ package generate
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/charmbracelet/huh"
@@ -9,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/phpboyscout/gtb/internal/generator"
+	"github.com/phpboyscout/gtb/pkg/forms"
 	"github.com/phpboyscout/gtb/pkg/props"
 	"github.com/phpboyscout/gtb/pkg/utils"
 )
@@ -22,9 +24,8 @@ type CommandOptions struct {
 	Parent           string
 	Args             string
 	Flags            []string
-	FlagsInput       string // For form input
-	Aliases          []string
 	AliasesInput     string // For form input
+	Aliases          []string
 	ScriptPath       string
 	Prompt           string
 	Agentless        bool
@@ -34,6 +35,44 @@ type CommandOptions struct {
 	WithInitializer  bool
 	Protected        *bool
 	Options          []string // For MultiSelect
+	AddFlags         bool     // Whether to show the flag entry stage
+	AddPrompt        bool     // Whether to show the AI prompt stage
+}
+
+// FlagFormInput holds data for a single flag collected via the interactive form.
+type FlagFormInput struct {
+	Name          string
+	Type          string
+	Description   string
+	Persistent    bool
+	Shorthand     string
+	Required      bool
+	Default       string
+	DefaultIsCode bool
+	AddAnother    bool
+}
+
+// toFlagString serializes a FlagFormInput to the colon-delimited format
+// expected by the generator: name:type:desc:persistent:shorthand:required:default:defaultIsCode
+func (fi *FlagFormInput) toFlagString() string {
+	return strings.Join([]string{
+		fi.Name,
+		fi.Type,
+		fi.Description,
+		boolToStr(fi.Persistent),
+		fi.Shorthand,
+		boolToStr(fi.Required),
+		fi.Default,
+		boolToStr(fi.DefaultIsCode),
+	}, ":")
+}
+
+func boolToStr(b bool) string {
+	if b {
+		return "true"
+	}
+
+	return "false"
 }
 
 func NewCmdCommand(p *props.Props) *cobra.Command {
@@ -179,40 +218,263 @@ func (o *CommandOptions) runInteractivePrompt() error {
 		o.AliasesInput = strings.Join(o.Aliases, ", ")
 	}
 
-	if len(o.Flags) > 0 {
-		o.FlagsInput = strings.Join(o.Flags, "\n")
+	return forms.NewWizard(o.buildMainGroup()).
+		Step(o.runAdditionalSteps).
+		Run()
+}
+
+// buildMainGroup returns the primary form group containing core command fields
+// plus toggles to opt in to flag and AI prompt stages.
+func (o *CommandOptions) buildMainGroup() *huh.Group {
+	return huh.NewGroup(
+		huh.NewInput().
+			Title("Command Name").
+			Description("Kebab-case name (e.g. create-user)").
+			Value(&o.Name).
+			Validate(func(s string) error {
+				if s == "" {
+					return errors.Newf("name is required")
+				}
+
+				if strings.Contains(s, " ") {
+					return errors.Newf("name must not contain spaces")
+				}
+
+				if s == "options" {
+					return errors.Newf("command name 'options' is reserved")
+				}
+
+				return nil
+			}),
+		huh.NewInput().
+			Title("Short Description").
+			Value(&o.Short).
+			Validate(func(s string) error {
+				if s == "" {
+					return errors.Newf("description is required")
+				}
+
+				return nil
+			}),
+		huh.NewText().
+			Title("Long Description").
+			Description("Optional — leave blank to use short description").
+			Value(&o.Long),
+		huh.NewInput().
+			Title("Aliases").
+			Description("Comma-separated aliases (e.g. ls, list)").
+			Value(&o.AliasesInput),
+		huh.NewInput().
+			Title("Parent Command").
+			Description("Parent command name or path (e.g. root, or kube/ctx)").
+			Value(&o.Parent),
+		huh.NewInput().
+			Title("Positional Arguments").
+			Description("Cobra argument validation (e.g. ExactArgs(1), ArbitraryArgs)").
+			Value(&o.Args),
+		huh.NewMultiSelect[string]().
+			Title("Options").
+			Options(
+				huh.NewOption("Include Assets", "assets"),
+				huh.NewOption("PersistentPreRun Hook", "persistent-pre-run"),
+				huh.NewOption("PreRun Hook", "pre-run"),
+				huh.NewOption("Config Initialiser", "initializer"),
+			).
+			Value(&o.Options),
+		huh.NewConfirm().
+			Title("Add Flags").
+			Description("Define flags for this command in the next step?").
+			Affirmative("Yes").
+			Negative("No").
+			Value(&o.AddFlags),
+		huh.NewConfirm().
+			Title("Set AI Prompt").
+			Description("Provide an AI prompt to generate the command logic in the next step?").
+			Affirmative("Yes").
+			Negative("No").
+			Value(&o.AddPrompt),
+	).Title("New Command").
+		Description("Configure your new CLI command.\n")
+}
+
+// buildFlagGroup returns a form group for capturing a single flag's definition.
+// existing is the list of flag strings already collected in this session; when
+// non-empty they are displayed in the group description so the user can see
+// what has been defined so far.
+func (o *CommandOptions) buildFlagGroup(fi *FlagFormInput, existing []string) *huh.Group {
+	fi.Type = "string" // sensible default
+
+	desc := "Define a flag for this command.\n"
+	if len(existing) > 0 {
+		desc = flagsSummary(existing)
 	}
 
-	form := o.buildForm()
+	return huh.NewGroup(
+		huh.NewInput().
+			Title("Flag Name").
+			Description("Kebab-case name (e.g. output-format)").
+			Value(&fi.Name).
+			Validate(func(s string) error {
+				if s == "" {
+					return errors.Newf("flag name is required")
+				}
 
-	if err := form.Run(); err != nil {
-		return err
-	}
+				return nil
+			}),
+		huh.NewSelect[string]().
+			Title("Type").
+			Options(
+				huh.NewOption("string", "string"),
+				huh.NewOption("bool", "bool"),
+				huh.NewOption("int", "int"),
+				huh.NewOption("float64", "float64"),
+				huh.NewOption("[]string (stringSlice)", "stringSlice"),
+				huh.NewOption("[]int (intSlice)", "intSlice"),
+				huh.NewOption("duration", "duration"),
+			).
+			Value(&fi.Type),
+		huh.NewInput().
+			Title("Description").
+			Value(&fi.Description),
+		huh.NewInput().
+			Title("Shorthand").
+			Description("Single character (leave blank for none)").
+			Value(&fi.Shorthand),
+		huh.NewInput().
+			Title("Default Value").
+			Description("Leave blank for zero value").
+			Value(&fi.Default),
+		huh.NewConfirm().
+			Title("Persistent").
+			Description("Inherit this flag in all subcommands?").
+			Value(&fi.Persistent),
+		huh.NewConfirm().
+			Title("Required").
+			Description("Is this flag required?").
+			Value(&fi.Required),
+		huh.NewConfirm().
+			Title("Add Another Flag").
+			Description("Define another flag after this one?").
+			Affirmative("Yes").
+			Negative("No, done").
+			Value(&fi.AddAnother),
+	).Title("Flag Definition").
+		Description(desc)
+}
 
-	if o.AliasesInput != "" {
-		o.Aliases = []string{}
-		for a := range strings.SplitSeq(o.AliasesInput, ",") {
-			trimmed := strings.TrimSpace(a)
-			if trimmed != "" {
-				o.Aliases = append(o.Aliases, trimmed)
-			}
+// flagsSummary builds a human-readable description listing the flags already
+// collected, shown on subsequent flag forms as context for the user.
+// Each entry is rendered as "  • name (type) — description".
+func flagsSummary(flags []string) string {
+	var sb strings.Builder
+
+	fmt.Fprintf(&sb, "Flags added so far (%d):\n", len(flags))
+
+	for _, f := range flags {
+		parts := strings.SplitN(f, ":", 8)
+		name := parts[0]
+		flagType := "string"
+		desc := ""
+
+		if len(parts) > 1 {
+			flagType = parts[1]
+		}
+
+		if len(parts) > 2 {
+			desc = parts[2]
+		}
+
+		if desc != "" {
+			fmt.Fprintf(&sb, "  • %s (%s) — %s\n", name, flagType, desc)
+		} else {
+			fmt.Fprintf(&sb, "  • %s (%s)\n", name, flagType)
 		}
 	}
 
-	if o.FlagsInput != "" {
-		o.Flags = []string{}
-		// Split by newline for multiple flags
-		for f := range strings.SplitSeq(o.FlagsInput, "\n") {
-			trimmed := strings.TrimSpace(f)
-			if trimmed != "" {
-				o.Flags = append(o.Flags, trimmed)
-			}
+	return sb.String()
+}
+
+// buildPromptGroup returns a form group for capturing the AI generation prompt.
+func (o *CommandOptions) buildPromptGroup() *huh.Group {
+	return huh.NewGroup(
+		huh.NewText().
+			Title("AI Prompt").
+			Description("Describe what this command should do, or paste a script to convert to Go.").
+			Value(&o.Prompt),
+	).Title("AI Generation").
+		Description("Provide a prompt or script for AI-assisted command logic generation.\n")
+}
+
+// runAdditionalSteps processes aliases and conditionally runs the flag and
+// prompt stages based on selections made in the main form.
+//
+// Escape on the first flag form (before any flags are saved) propagates back
+// to the main form. Escape on subsequent flag forms stops flag entry and
+// continues. Escape on the prompt form returns to the main form.
+func (o *CommandOptions) runAdditionalSteps() error {
+	o.processAliasesInput()
+
+	if o.AddFlags {
+		if err := o.runFlagLoop(); err != nil {
+			return err
+		}
+	}
+
+	if o.AddPrompt {
+		if err := forms.NewNavigable(o.buildPromptGroup()).Run(); err != nil {
+			return err
 		}
 	}
 
 	o.syncOptionsToFlags()
 
 	return nil
+}
+
+// runFlagLoop presents the flag form repeatedly until the user unchecks
+// "Add Another Flag". Escape on the very first flag form propagates
+// huh.ErrUserAborted so the Wizard navigates back to the main form.
+// Escape on any subsequent flag form stops flag entry cleanly.
+func (o *CommandOptions) runFlagLoop() error {
+	first := true
+
+	for {
+		fi := FlagFormInput{}
+
+		err := forms.NewNavigable(o.buildFlagGroup(&fi, o.Flags)).Run()
+		if errors.Is(err, huh.ErrUserAborted) {
+			if first {
+				return err // propagate → Wizard goes back to main form
+			}
+
+			return nil // user is done adding flags
+		}
+
+		if err != nil {
+			return err
+		}
+
+		o.Flags = append(o.Flags, fi.toFlagString())
+		first = false
+
+		if !fi.AddAnother {
+			return nil
+		}
+	}
+}
+
+func (o *CommandOptions) processAliasesInput() {
+	if o.AliasesInput == "" {
+		return
+	}
+
+	o.Aliases = []string{}
+
+	for a := range strings.SplitSeq(o.AliasesInput, ",") {
+		if trimmed := strings.TrimSpace(a); trimmed != "" {
+			o.Aliases = append(o.Aliases, trimmed)
+		}
+	}
 }
 
 func (o *CommandOptions) syncFlagsToOptions() error {
@@ -248,75 +510,6 @@ func (o *CommandOptions) syncOptionsToFlags() {
 			o.WithInitializer = true
 		}
 	}
-}
-
-func (o *CommandOptions) buildForm() *huh.Form {
-	return huh.NewForm(
-		huh.NewGroup(
-			huh.NewInput().
-				Title("Command Name").
-				Description("Kebab-case name (e.g. create-user)").
-				Value(&o.Name).
-				Validate(func(s string) error {
-					if s == "" {
-						return errors.Newf("name is required")
-					}
-
-					if strings.Contains(s, " ") {
-						return errors.Newf("name must not contain spaces")
-					}
-
-					if s == "options" {
-						return errors.Newf("command name 'options' is reserved")
-					}
-
-					return nil
-				}),
-			huh.NewInput().
-				Title("Short Description").
-				Value(&o.Short).
-				Validate(func(s string) error {
-					if s == "" {
-						return errors.Newf("description is required")
-					}
-
-					return nil
-				}),
-			huh.NewText().
-				Title("Long Description").
-				Description("Optional (leave blank to use short description)").
-				Value(&o.Long),
-			huh.NewInput().
-				Title("Aliases").
-				Description("Comma separated aliases (e.g. ls, list)").
-				Value(&o.AliasesInput),
-			huh.NewText().
-				Title("Flags Definitions").
-				Description("One definition per line: name:type:desc:persistent:shorthand:required:default:defaultIsCode").
-				Value(&o.FlagsInput),
-			huh.NewInput().
-				Title("Parent Command").
-				Description("Parent command name or path (e.g. root, or kube/ctx)").
-				Value(&o.Parent),
-			huh.NewInput().
-				Title("Positional Arguments").
-				Description("Cobra argument validation (e.g. ExactArgs(1), ArbitraryArgs)").
-				Value(&o.Args),
-			huh.NewMultiSelect[string]().
-				Title("Options").
-				Options(
-					huh.NewOption("Include Assets", "assets"),
-					huh.NewOption("PersistentPreRun Hook", "persistent-pre-run"),
-					huh.NewOption("PreRun Hook", "pre-run"),
-					huh.NewOption("Config Initialiser", "initializer"),
-				).
-				Value(&o.Options),
-			huh.NewText().
-				Title("AI Prompt").
-				Description("Optional (leave blank to skip)").
-				Value(&o.Prompt),
-		),
-	)
 }
 
 func (o *CommandOptions) Run(ctx context.Context, p *props.Props) error {
