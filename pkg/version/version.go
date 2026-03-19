@@ -50,7 +50,12 @@ func (i Info) Compare(other string) int {
 }
 
 func (i Info) IsDevelopment() bool {
-	return i.Version == "v0.0.0" || i.Version == "dev" || i.Version == "vdev" || strings.Contains(i.Version, "-dev")
+	v := FormatVersionString(i.Version, true)
+	if !semver.IsValid(v) {
+		return true
+	}
+
+	return strings.Contains(i.Version, "-dev") || strings.Contains(i.Version, "-dirty")
 }
 
 // FormatVersionString adds or removes a "v" prefix from version string.
