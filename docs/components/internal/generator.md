@@ -82,7 +82,6 @@ The following files are copied verbatim (or rendered as templates) from the embe
 #### Documentation (`docs/`)
 -   `zensical.toml`: Documentation site configuration (Zensical/MkDocs-Material).
 -   `docs/index.md`: Placeholder landing page.
--   `catalog-info.yaml`: Backstage catalog metadata.
 
 ## Command Generation Architecture (`commands.go`)
 
