@@ -57,7 +57,6 @@ func NewWizard(groups ...*huh.Group) *Wizard {
 	w := &Wizard{}
 
 	for _, g := range groups {
-
 		w.steps = append(w.steps, func() error {
 			return NewNavigable(g).Run()
 		})

@@ -10,6 +10,7 @@ import (
 	"github.com/anthropics/anthropic-sdk-go/option"
 	"github.com/cockroachdb/errors"
 	"github.com/invopop/jsonschema"
+
 	"github.com/phpboyscout/gtb/pkg/props"
 )
 
