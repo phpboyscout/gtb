@@ -1614,28 +1614,37 @@ func (g *Generator) extractProjectProperties(rootCmdPath string) (*ManifestPrope
 		return nil, nil, err
 	}
 
-	var targetFunc *dst.FuncDecl
-
-	for _, decl := range f.Decls {
-		if fn, ok := decl.(*dst.FuncDecl); ok && fn.Name.Name == "NewCmdRoot" {
-			targetFunc = fn
-			break
-		}
-	}
-
+	targetFunc := findFuncDecl(f, "NewCmdRoot")
 	if targetFunc == nil {
 		return nil, nil, errors.New("NewCmdRoot not found in root cmd.go")
 	}
 
-	for _, stmt := range targetFunc.Body.List {
+	return findPropsLiteralInFunc(targetFunc)
+}
+
+// findFuncDecl returns the first function declaration with the given name, or nil.
+func findFuncDecl(f *dst.File, name string) *dst.FuncDecl {
+	for _, decl := range f.Decls {
+		if fn, ok := decl.(*dst.FuncDecl); ok && fn.Name.Name == name {
+			return fn
+		}
+	}
+
+	return nil
+}
+
+// findPropsLiteralInFunc walks assignment statements in fn looking for a
+// &props.Props{...} composite literal and extracts project properties from it.
+func findPropsLiteralInFunc(fn *dst.FuncDecl) (*ManifestProperties, *ManifestReleaseSource, error) {
+	for _, stmt := range fn.Body.List {
 		assign, ok := stmt.(*dst.AssignStmt)
 		if !ok {
 			continue
 		}
 
 		for _, rhs := range assign.Rhs {
-			mp, rs, propErr := tryExtractPropsLiteral(rhs)
-			if propErr == nil && mp != nil {
+			mp, rs, err := tryExtractPropsLiteral(rhs)
+			if err == nil && mp != nil {
 				return mp, rs, nil
 			}
 		}
@@ -1698,25 +1707,29 @@ func extractFromToolLiteral(comp *dst.CompositeLit) (*ManifestProperties, *Manif
 			continue
 		}
 
-		switch key.Name {
-		case "Name":
-			if v, ok := stringLitValue(kv.Value); ok {
-				mp.Name = v
-			}
-		case "Description":
-			if v, ok := stringLitValue(kv.Value); ok {
-				mp.Description = MultilineString(v)
-			}
-		case "Features":
-			mp.Features = extractFeaturesFromSetFeatures(kv.Value)
-		case "ReleaseSource":
-			if inner, ok := kv.Value.(*dst.CompositeLit); ok {
-				extractReleaseSourceLiteral(inner, rs)
-			}
-		}
+		applyToolField(mp, rs, key.Name, kv.Value)
 	}
 
 	return mp, rs, nil
+}
+
+func applyToolField(mp *ManifestProperties, rs *ManifestReleaseSource, fieldName string, value dst.Expr) {
+	switch fieldName {
+	case "Name":
+		if v, ok := stringLitValue(value); ok {
+			mp.Name = v
+		}
+	case "Description":
+		if v, ok := stringLitValue(value); ok {
+			mp.Description = MultilineString(v)
+		}
+	case "Features":
+		mp.Features = extractFeaturesFromSetFeatures(value)
+	case "ReleaseSource":
+		if inner, ok := value.(*dst.CompositeLit); ok {
+			extractReleaseSourceLiteral(inner, rs)
+		}
+	}
 }
 
 func extractReleaseSourceLiteral(comp *dst.CompositeLit, rs *ManifestReleaseSource) {
@@ -1770,37 +1783,7 @@ func extractFeaturesFromSetFeatures(expr dst.Expr) []ManifestFeature {
 
 	if call, ok := expr.(*dst.CallExpr); ok {
 		for _, arg := range call.Args {
-			mutCall, ok := arg.(*dst.CallExpr)
-			if !ok {
-				continue
-			}
-
-			sel, ok := mutCall.Fun.(*dst.SelectorExpr)
-			if !ok {
-				continue
-			}
-
-			action := sel.Sel.Name
-			if action != "Enable" && action != "Disable" {
-				continue
-			}
-
-			if len(mutCall.Args) == 0 {
-				continue
-			}
-
-			var constName string
-
-			switch a := mutCall.Args[0].(type) {
-			case *dst.SelectorExpr:
-				constName = a.Sel.Name
-			case *dst.Ident:
-				constName = a.Name
-			}
-
-			if feat, ok := constToFeature[constName]; ok {
-				enabled[feat] = action == "Enable"
-			}
+			applyFeatureMutation(arg, constToFeature, enabled)
 		}
 	}
 
@@ -1810,6 +1793,42 @@ func extractFeaturesFromSetFeatures(expr dst.Expr) []ManifestFeature {
 	}
 
 	return features
+}
+
+// applyFeatureMutation inspects a single argument to props.SetFeatures and,
+// if it is an Enable/Disable call, updates the enabled map accordingly.
+func applyFeatureMutation(arg dst.Expr, constToFeature map[string]string, enabled map[string]bool) {
+	mutCall, ok := arg.(*dst.CallExpr)
+	if !ok {
+		return
+	}
+
+	sel, ok := mutCall.Fun.(*dst.SelectorExpr)
+	if !ok {
+		return
+	}
+
+	action := sel.Sel.Name
+	if action != "Enable" && action != "Disable" {
+		return
+	}
+
+	if len(mutCall.Args) == 0 {
+		return
+	}
+
+	var constName string
+
+	switch a := mutCall.Args[0].(type) {
+	case *dst.SelectorExpr:
+		constName = a.Sel.Name
+	case *dst.Ident:
+		constName = a.Name
+	}
+
+	if feat, ok := constToFeature[constName]; ok {
+		enabled[feat] = action == "Enable"
+	}
 }
 
 // isTypeName reports whether expr refers to the given simple type name,
