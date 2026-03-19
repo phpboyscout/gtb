@@ -14,9 +14,11 @@ description: Library verification suite for GTB
    ```bash
    just lint-fix
    ```
-4. Regenerate mocks if any interfaces were modified:
+   If any issues remain after `--fix`, resolve them following the `/gtb-lint` workflow before continuing.
+4. **Confirm tests still pass after any linting or refactoring changes.** Structural fixes (nestif, cyclop) can silently alter behaviour — always re-run the test suite as the final step after lint work, not just before it.
+5. Regenerate mocks if any interfaces were modified:
    ```bash
    just mocks
    ```
-5. Verify that no `//nolint` decorators were added unnecessarily.
-6. Ensure test coverage for new library features in `pkg/` is at least 90%.
+6. Verify that no `//nolint` decorators were added unnecessarily.
+7. Ensure test coverage for new library features in `pkg/` is at least 90%.

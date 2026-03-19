@@ -10,9 +10,11 @@ description: Release preparation workflow for GTB
    - Flag any commits that are missing a type prefix or use an incorrect type.
 3. **Determine version bump**:
    - `feat:` commits → minor bump
-   - `fix:` / `perf:` commits → patch bump
+   - `fix:` / `perf:` / `refactor:` commits → patch bump
    - Any commit with `BREAKING CHANGE:` in the footer → major bump
+   - `ci:`, `chore:`, `style:`, `docs:`, `test:` commits → no release triggered
    - Confirm the expected bump is appropriate for the changes included.
+   - Flag any commits that use a non-application type (e.g. `ci:`, `chore:`) for changes that actually affect library or CLI behaviour — these must be retyped before release.
 4. **Validate goreleaser config**:
    - Run `goreleaser check` to validate `.goreleaser.yaml`.
    - Run `just snapshot` to build a local snapshot and verify binaries compile cleanly:
