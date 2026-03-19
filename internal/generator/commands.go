@@ -381,6 +381,14 @@ func (g *Generator) postGenerate(ctx context.Context, data templates.CommandData
 
 	if err := g.registerSubcommand(); err != nil {
 		g.props.Logger.Warnf("Failed to register subcommand %q: %v", data.Name, err)
+	} else if err := g.updateParentCmdHash(); err != nil {
+		g.props.Logger.Warnf("Failed to update parent command hash: %v", err)
+	}
+
+	g.props.Logger.Infof("Re-registering child commands for %q...", data.Name)
+
+	if err := g.reRegisterChildCommands(cmdDir, data.Hashes); err != nil {
+		g.props.Logger.Warnf("Failed to re-register child commands for %q: %v", data.Name, err)
 	}
 
 	g.props.Logger.Info("Updating manifest.yaml...")
@@ -395,6 +403,54 @@ func (g *Generator) postGenerate(ctx context.Context, data templates.CommandData
 	g.props.Logger.Info("Generating documentation...")
 
 	return g.handleDocumentationGeneration(ctx, data, cmdDir)
+}
+
+// reRegisterChildCommands re-injects AddCommand calls for any children of the
+// current command that are already recorded in the manifest.  This preserves
+// child registrations when cmd.go is overwritten by a regeneration.  After
+// all children are re-registered the cmd.go hash in hashes is refreshed to
+// reflect the modified file content.
+func (g *Generator) reRegisterChildCommands(cmdDir string, hashes map[string]string) error {
+	m, err := g.loadManifest()
+	if err != nil {
+		return nil //nolint:nilerr // no manifest yet — nothing to preserve
+	}
+
+	parentParts := g.getParentPathParts()
+	cmd := findCommandAt(m.Commands, parentParts, g.config.Name)
+
+	if cmd == nil || len(cmd.Commands) == 0 {
+		return nil
+	}
+
+	childParent := g.config.Name
+	if len(parentParts) > 0 {
+		childParent = strings.Join(append(parentParts, g.config.Name), "/")
+	}
+
+	for _, child := range cmd.Commands {
+		childGen := New(g.props, &Config{
+			Path:   g.config.Path,
+			Name:   child.Name,
+			Parent: childParent,
+		})
+
+		if err := childGen.registerSubcommand(); err != nil {
+			g.props.Logger.Warnf("Failed to re-register child %q under %q: %v", child.Name, g.config.Name, err)
+		}
+	}
+
+	// Recompute cmd.go hash after modifications by child registrations.
+	cmdFile := filepath.Join(cmdDir, "cmd.go")
+
+	content, err := afero.ReadFile(g.props.FS, cmdFile)
+	if err != nil {
+		return errors.Newf("failed to read cmd.go after child re-registration: %w", err)
+	}
+
+	hashes["cmd.go"] = calculateHash(content)
+
+	return nil
 }
 
 func (g *Generator) handleDocumentationGeneration(ctx context.Context, data templates.CommandData, cmdDir string) error {
@@ -1129,6 +1185,8 @@ func (g *Generator) performRemoval(cmdDir string) error {
 	// 1. Deregister from parent
 	if err := g.deregisterSubcommand(); err != nil {
 		g.props.Logger.Warnf("Failed to deregister subcommand: %v", err)
+	} else if err := g.updateParentCmdHash(); err != nil {
+		g.props.Logger.Warnf("Failed to update parent command hash after deregistration: %v", err)
 	}
 
 	// 2. Remove from manifest
@@ -1234,12 +1292,8 @@ func (g *Generator) regenerateCommandRecursive(ctx context.Context, cmd Manifest
 		return err
 	}
 
-	// Update manifest with new hash
-	allFlags := append([]templates.CommandFlag{}, data.Flags...)
-	allFlags = append(allFlags, data.PersistentFlags...)
-
-	if err := g.updateManifest(allFlags, data.Hashes); err != nil {
-		g.props.Logger.Warnf("Failed to update manifest hash for %s: %v", cmd.Name, err)
+	if err := g.postGenerate(ctx, data, cmdDir); err != nil {
+		return err
 	}
 
 	// Recurse for subcommands

@@ -396,6 +396,99 @@ func (g *Generator) FindCommandParentPath(name string) ([]string, error) {
 	return []string{}, nil
 }
 
+// updateParentCmdHash reads the parent command's cmd.go after it has been
+// modified by (de)registration and stores the new hash in the manifest.
+// When the parent is root the file is not tracked in manifest commands, so
+// the call is a no-op.
+func (g *Generator) updateParentCmdHash() error {
+	parentParts := g.getParentPathParts()
+	if len(parentParts) == 0 {
+		return nil
+	}
+
+	parentCmdFile := filepath.Join(g.config.Path, "pkg", "cmd", filepath.Join(parentParts...), "cmd.go")
+
+	content, err := afero.ReadFile(g.props.FS, parentCmdFile)
+	if err != nil {
+		return errors.Newf("failed to read parent cmd.go: %w", err)
+	}
+
+	hash := calculateHash(content)
+
+	manifestPath := filepath.Join(g.config.Path, ".gtb", "manifest.yaml")
+
+	data, err := afero.ReadFile(g.props.FS, manifestPath)
+	if err != nil {
+		return errors.Newf("failed to read manifest: %w", err)
+	}
+
+	var m Manifest
+
+	if err := yaml.Unmarshal(data, &m); err != nil {
+		return errors.Newf("failed to unmarshal manifest: %w", err)
+	}
+
+	if !updateCommandHashRecursive(&m.Commands, parentParts, hash) {
+		return nil
+	}
+
+	updated, err := yaml.Marshal(m)
+	if err != nil {
+		return errors.Newf("failed to marshal manifest: %w", err)
+	}
+
+	return afero.WriteFile(g.props.FS, manifestPath, updated, DefaultFileMode)
+}
+
+func updateCommandHashRecursive(commands *[]ManifestCommand, path []string, hash string) bool {
+	if len(path) == 0 {
+		return false
+	}
+
+	for i := range *commands {
+		if (*commands)[i].Name != path[0] {
+			continue
+		}
+
+		if len(path) == 1 {
+			if (*commands)[i].Hashes == nil {
+				(*commands)[i].Hashes = make(map[string]string)
+			}
+
+			(*commands)[i].Hashes["cmd.go"] = hash
+
+			return true
+		}
+
+		return updateCommandHashRecursive(&(*commands)[i].Commands, path[1:], hash)
+	}
+
+	return false
+}
+
+// findCommandAt returns a pointer to the command named `name` whose parent
+// chain matches `parentPath`.  Unlike findCommandRecursive, it handles a root-
+// level command where parentPath is empty.
+func findCommandAt(commands []ManifestCommand, parentPath []string, name string) *ManifestCommand {
+	if len(parentPath) == 0 {
+		for i := range commands {
+			if commands[i].Name == name {
+				return &commands[i]
+			}
+		}
+
+		return nil
+	}
+
+	for i := range commands {
+		if commands[i].Name == parentPath[0] {
+			return findCommandAt(commands[i].Commands, parentPath[1:], name)
+		}
+	}
+
+	return nil
+}
+
 func findCommandPathRecursive(commands []ManifestCommand, targetName string) ([]string, bool) {
 	for _, cmd := range commands {
 		if cmd.Name == targetName {
