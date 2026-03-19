@@ -7,8 +7,9 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/invopop/jsonschema"
-	"github.com/phpboyscout/gtb/pkg/props"
 	"google.golang.org/genai"
+
+	"github.com/phpboyscout/gtb/pkg/props"
 )
 
 func init() {

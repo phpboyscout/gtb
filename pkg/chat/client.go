@@ -8,6 +8,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/invopop/jsonschema"
+
 	"github.com/phpboyscout/gtb/pkg/props"
 )
 
@@ -107,6 +108,7 @@ var (
 func RegisterProvider(name Provider, factory ProviderFactory) {
 	registryMu.Lock()
 	defer registryMu.Unlock()
+
 	providerRegistry[name] = factory
 }
 
@@ -121,7 +123,9 @@ func New(ctx context.Context, p *props.Props, cfg Config) (ChatClient, error) {
 	}
 
 	registryMu.RLock()
+
 	factory, ok := providerRegistry[cfg.Provider]
+
 	registryMu.RUnlock()
 
 	if !ok {
