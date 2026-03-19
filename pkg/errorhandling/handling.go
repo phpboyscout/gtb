@@ -115,26 +115,19 @@ func (h *StandardErrorHandler) handleSpecialErrors(err error, cmd ...*cobra.Comm
 	return false
 }
 
-func (h *StandardErrorHandler) logError(err error, prefix, level string) {
-	l := h.Logger
-	if len(prefix) > 0 {
-		l = l.WithPrefix(prefix)
-	}
-
+func (h *StandardErrorHandler) buildLogKVPairs(err error) []any {
 	kvPairs := []any{}
+	isDebug := h.Logger.GetLevel() == log.DebugLevel
 
-	// Stack trace in debug mode
-	if h.Logger.GetLevel() == log.DebugLevel {
+	if isDebug {
 		kvPairs = append(kvPairs, KeyStacktrace, fmt.Sprintf("%+v", err))
 	}
 
-	// User-facing hints (always displayed when present)
 	if hints := errors.FlattenHints(err); hints != "" {
 		kvPairs = append(kvPairs, KeyHints, hints)
 	}
 
-	// Developer-facing details (debug mode only)
-	if h.Logger.GetLevel() == log.DebugLevel {
+	if isDebug {
 		if details := errors.FlattenDetails(err); details != "" {
 			kvPairs = append(kvPairs, KeyDetails, details)
 		}
@@ -145,6 +138,17 @@ func (h *StandardErrorHandler) logError(err error, prefix, level string) {
 			kvPairs = append(kvPairs, KeyHelp, msg)
 		}
 	}
+
+	return kvPairs
+}
+
+func (h *StandardErrorHandler) logError(err error, prefix, level string) {
+	l := h.Logger
+	if len(prefix) > 0 {
+		l = l.WithPrefix(prefix)
+	}
+
+	kvPairs := h.buildLogKVPairs(err)
 
 	switch level {
 	case LevelFatal:
