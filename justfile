@@ -78,6 +78,7 @@ ci: tidy generate test test-race lint
     @echo "CI suite passed"
 
 # Cleanup build artifacts
+[confirm]
 cleanup:
     rm -rf bin
     rm -rf site
