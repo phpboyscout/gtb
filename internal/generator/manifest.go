@@ -675,10 +675,6 @@ func removeFromCommandRecursive(commands *[]ManifestCommand, parentPath []string
 	return false
 }
 func (g *Generator) RegenerateManifest(ctx context.Context) error {
-	if err := g.verifyProject(); err != nil {
-		return err
-	}
-
 	g.props.Logger.Info("Scanning project for commands to rebuild manifest...")
 
 	cmdRoot := filepath.Join(g.config.Path, "pkg", "cmd")
@@ -695,19 +691,38 @@ func (g *Generator) RegenerateManifest(ctx context.Context) error {
 
 	manifestPath := filepath.Join(g.config.Path, ".gtb", "manifest.yaml")
 
-	data, err := afero.ReadFile(g.props.FS, manifestPath)
-	if err != nil {
-		return errors.Newf("failed to read manifest: %w", err)
-	}
-
+	// Load existing manifest to preserve properties/release_source/version.
+	// If it doesn't exist yet, start from an empty manifest.
 	var m Manifest
-	if err := yaml.Unmarshal(data, &m); err != nil {
-		return errors.Newf("failed to unmarshal manifest: %w", err)
+
+	if data, readErr := afero.ReadFile(g.props.FS, manifestPath); readErr == nil {
+		if err := yaml.Unmarshal(data, &m); err != nil {
+			return errors.Newf("failed to unmarshal manifest: %w", err)
+		}
+	} else if !os.IsNotExist(readErr) {
+		return errors.Newf("failed to read manifest: %w", readErr)
 	}
 
 	m.Commands = commands
+
+	// Extract project properties from the generated root cmd.go so that
+	// name, description, release_source, and features are always up to date.
+	rootCmdPath := filepath.Join(g.config.Path, "pkg", "cmd", "root", "cmd.go")
+	if mProps, rs, err := g.extractProjectProperties(rootCmdPath); err == nil {
+		m.Properties = *mProps
+		m.ReleaseSource = *rs
+	} else {
+		g.props.Logger.Warnf("Could not extract project properties from root cmd.go: %v", err)
+	}
+
 	if g.props.Version != nil {
 		m.Version.GoToolBase = g.props.Version.GetVersion()
+	}
+
+	// Ensure the .gtb directory exists before writing.
+	gtbDir := filepath.Join(g.config.Path, ".gtb")
+	if err := g.props.FS.MkdirAll(gtbDir, os.FileMode(DefaultDirMode)); err != nil {
+		return errors.Newf("failed to create .gtb directory: %w", err)
 	}
 
 	updated, err := yaml.Marshal(m)
