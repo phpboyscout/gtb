@@ -598,6 +598,22 @@ func updateProtectionRecursive(commands *[]ManifestCommand, pathParts []string, 
 
 	return false
 }
+func removeCommand(commands *[]ManifestCommand, pathParts []string, name string) bool {
+	if len(pathParts) == 0 {
+		for i, cmd := range *commands {
+			if cmd.Name == name {
+				*commands = append((*commands)[:i], (*commands)[i+1:]...)
+
+				return true
+			}
+		}
+
+		return false
+	}
+
+	return removeFromCommandRecursive(commands, pathParts, name)
+}
+
 func (g *Generator) removeFromManifest() error {
 	manifestPath := filepath.Join(g.config.Path, ".gtb", "manifest.yaml")
 
@@ -612,30 +628,12 @@ func (g *Generator) removeFromManifest() error {
 		return errors.Newf("failed to unmarshal manifest: %w", err)
 	}
 
-	pathParts := g.getParentPathParts()
-
-	removed := false
-
-	if len(pathParts) == 0 {
-		for i, cmd := range m.Commands {
-			if cmd.Name == g.config.Name {
-				m.Commands = append(m.Commands[:i], m.Commands[i+1:]...)
-				removed = true
-
-				break
-			}
-		}
-	} else if removeFromCommandRecursive(&m.Commands, pathParts, g.config.Name) {
-		removed = true
+	if !removeCommand(&m.Commands, g.getParentPathParts(), g.config.Name) {
+		return errors.Newf("command %s not found in manifest", g.config.Name)
 	}
 
-	// Update version
 	if g.props.Version != nil {
 		m.Version.GoToolBase = g.props.Version.GetVersion()
-	}
-
-	if !removed {
-		return errors.Newf("command %s not found in manifest", g.config.Name)
 	}
 
 	updated, err := yaml.Marshal(m)
@@ -643,9 +641,7 @@ func (g *Generator) removeFromManifest() error {
 		return errors.Newf("failed to marshal manifest: %w", err)
 	}
 
-	permission := DefaultFileMode
-
-	if err := afero.WriteFile(g.props.FS, manifestPath, updated, os.FileMode(permission)); err != nil {
+	if err := afero.WriteFile(g.props.FS, manifestPath, updated, os.FileMode(DefaultFileMode)); err != nil {
 		return errors.Newf("failed to write manifest: %w", err)
 	}
 
