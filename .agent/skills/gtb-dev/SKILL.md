@@ -42,6 +42,7 @@ Use the appropriate workflow for the task at hand. These are the primary executi
 | Adding or modifying a reusable library component in `pkg/` | `/gtb-library-contribution` |
 | Defining or generating a new CLI command | `/gtb-command-generation` |
 | Verifying correctness before committing or raising a PR | `/gtb-verify` |
+| Resolving golangci-lint issues | `/gtb-lint` |
 | Updating documentation without touching code | `/gtb-docs` |
 | Preparing or validating a release | `/gtb-release` |
 
@@ -111,6 +112,46 @@ Any alteration to functionality **MUST** trigger a review of associated document
 
 ---
 
+## Commit Conventions
+
+All commits **must** follow [Conventional Commits](https://www.conventionalcommits.org/). Semantic-release reads these to determine version bumps and changelog sections — an incorrect type can suppress a release or inflate a version.
+
+### Type reference
+
+| Type | When to use | Release triggered |
+|------|-------------|-------------------|
+| `feat` | New user-facing functionality | Minor |
+| `fix` | Bug fix, or code quality fix (lint, test correctness) | Patch |
+| `refactor` | Structural change with no behaviour change | Patch |
+| `perf` | Performance improvement | Patch |
+| `revert` | Reverts a previous commit | Patch |
+| `ci` | CI/CD pipeline or tooling configuration | None |
+| `chore` | Dependency bumps, non-code maintenance | None |
+| `style` | Formatting only, zero logic change | None |
+| `docs` | Documentation only | None |
+| `test` | Test additions or corrections only | None |
+
+### Scope
+
+Always include a scope in parentheses that identifies the **functional area** of the change — this makes history scannable without reading every body. Use the package name, subsystem, or feature name:
+
+```
+fix(lint): correct append slice assignment in ClaudeLocal.buildPrompt
+feat(chat): add ProviderClaudeLocal support
+ci(release): add refactor commit type as patch release trigger
+chore(deps): bump golang.org/x/crypto to v0.49.0
+```
+
+Avoid generic scopes like `(misc)`, `(various)`, or `(gtb)`.
+
+### One change per commit
+
+Each commit must represent a **single, coherent change**. Do not bundle unrelated fixes or mix lint cleanup with feature work. If a dependency migration also requires lint fixes in the same file, that is acceptable to group — otherwise split.
+
+Commit bodies should explain **why** the change was made, not just what. Link to the linter rule, the deprecated symbol notice, or the spec section where relevant.
+
+---
+
 ## Code Quality
 
 Before raising a PR, run the `/simplify` skill on changed files to check for unnecessary complexity, redundant abstractions, or reuse opportunities within the codebase.
@@ -122,7 +163,7 @@ Before raising a PR, run the `/simplify` skill on changed files to check for unn
 When tests fail, linting fails, or generator output is wrong, follow these steps before retrying:
 
 1. **Test failures**: Read the full failure output — identify whether it is a logic error, a missing mock, or a stale interface. Run `go test -v -run TestName ./path/to/pkg` to isolate.
-2. **Linter failures**: Run `golangci-lint run --fix` — most issues are auto-fixable. For remaining issues, address the root cause rather than adding `//nolint`.
+2. **Linter failures**: Run `golangci-lint run --fix` — most issues are auto-fixable. For remaining issues, follow the `/gtb-lint` workflow to address them in order of complexity. Never add `//nolint` to bypass an issue. Always re-run the full test suite after lint fixes — structural changes (nestif, cyclop) can silently alter behaviour.
 3. **Mock issues**: If a mock is stale or missing, run `mockery` to regenerate from the current interface definition.
 4. **Generator failures**: Run `just build` to recompile the generator before testing output. Check `internal/generator/` templates if scaffolded code is incorrect.
 5. **Race conditions**: Run `go test -race -count=5 ./path/to/pkg` to reproduce intermittent race failures reliably.
