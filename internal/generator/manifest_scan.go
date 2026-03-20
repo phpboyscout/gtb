@@ -58,8 +58,12 @@ func (g *Generator) RegenerateManifest(ctx context.Context) error {
 		m.Version.GoToolBase = g.props.Version.GetVersion()
 	}
 
+	return g.writeManifestFile(manifestPath, m)
+}
+
+func (g *Generator) writeManifestFile(manifestPath string, m Manifest) error {
 	// Ensure the .gtb directory exists before writing.
-	gtbDir := filepath.Join(g.config.Path, ".gtb")
+	gtbDir := filepath.Dir(manifestPath)
 	if err := g.props.FS.MkdirAll(gtbDir, os.FileMode(DefaultDirMode)); err != nil {
 		return errors.Newf("failed to create .gtb directory: %w", err)
 	}
