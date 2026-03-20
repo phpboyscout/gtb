@@ -116,6 +116,10 @@ Any alteration to functionality **MUST** trigger a review of associated document
 
 All commits **must** follow [Conventional Commits](https://www.conventionalcommits.org/). Semantic-release reads these to determine version bumps and changelog sections — an incorrect type can suppress a release or inflate a version.
 
+### Point of order: AI authorship
+
+**Do not add AI attribution to any commit** — no `Co-Authored-By:` trailers naming an AI, no mention of AI tools in commit messages, no references to AI assistance in any form. Every commit is created and signed off by the developer who runs `git commit`. That developer takes full responsibility for the code, its correctness, and any consequences that follow. AI assistance during development is a private implementation detail of the developer's workflow, not a fact that belongs in the permanent project history.
+
 ### Type reference
 
 | Type | When to use | Release triggered |

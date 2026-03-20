@@ -39,18 +39,19 @@ builds:
       - -s -w
       - -X github.com/phpboyscout/gtb/internal/version.version={{.Version}} -X github.com/phpboyscout/gtb/internal/version.commit={{.Commit}} -X github.com/phpboyscout/gtb/internal/version.date={{.Date}}
 
-signs:
-  - ids:
-      - gtb-darwin
-    artifacts: binary
-    cmd: codesign
-    args:
-      - "--force"
-      - "--options"
-      - "runtime"
-      - "--sign"
-      - "Developer ID Application: MATTHEW JOHN COCKAYNE (7M39CAN7U6)"
-      - "${artifact}"
+notarize:
+  macos:
+    - enabled: '{{ isEnvSet "APPLE_DEV_CERT" }}'
+      ids:
+        - gtb-darwin
+      sign:
+        certificate: "{{.Env.APPLE_DEV_CERT}}"
+        password: "{{.Env.APPLE_DEV_CERT_PASSWORD}}"
+      notarize:
+        issuer_id: "{{.Env.APPLE_NOTARY_ISSUER_ID}}"
+        key_id: "{{.Env.APPLE_NOTARY_KEY_ID}}"
+        key: "{{.Env.APPLE_NOTARY_KEY}}"
+
 archives:
   - formats: ["tar.gz"]
     # this name template makes the OS and Arch compatible with the results of `uname`.
