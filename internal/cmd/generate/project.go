@@ -241,6 +241,30 @@ func (o *SkeletonOptions) runWizard() error {
 		Run()
 }
 
+// resolveFeatures builds the full feature list from the selected set,
+// marking unselected defaults as explicitly disabled.
+func resolveFeatures(selected []string) []generator.ManifestFeature {
+	defaultFeatures := []string{"init", "update", "mcp", "docs"}
+
+	selectedMap := make(map[string]bool, len(selected))
+	for _, f := range selected {
+		selectedMap[f] = true
+	}
+
+	features := make([]generator.ManifestFeature, 0, len(defaultFeatures))
+	for _, f := range selected {
+		features = append(features, generator.ManifestFeature{Name: f, Enabled: true})
+	}
+
+	for _, f := range defaultFeatures {
+		if !selectedMap[f] {
+			features = append(features, generator.ManifestFeature{Name: f, Enabled: false})
+		}
+	}
+
+	return features
+}
+
 func (o *SkeletonOptions) Run(ctx context.Context, p *props.Props) error {
 	if o.Overwrite == "" {
 		o.Overwrite = "ask"
@@ -255,30 +279,7 @@ func (o *SkeletonOptions) Run(ctx context.Context, p *props.Props) error {
 		Overwrite: o.Overwrite,
 	})
 
-	features := make([]generator.ManifestFeature, 0, len(o.Features))
-	for _, f := range o.Features {
-		features = append(features, generator.ManifestFeature{
-			Name:    f,
-			Enabled: true,
-		})
-	}
-
-	// Also add explicitly disabled ones if they are default features but not in the list
-	defaultFeatures := []string{"init", "update", "mcp", "docs"}
-
-	selectedMap := make(map[string]bool)
-	for _, f := range o.Features {
-		selectedMap[f] = true
-	}
-
-	for _, f := range defaultFeatures {
-		if !selectedMap[f] {
-			features = append(features, generator.ManifestFeature{
-				Name:    f,
-				Enabled: false,
-			})
-		}
-	}
+	features := resolveFeatures(o.Features)
 
 	host := o.Host
 	if host == "" {
