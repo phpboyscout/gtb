@@ -44,6 +44,10 @@ func (g *Generator) RegenerateProject(ctx context.Context) error {
 		}
 	}
 
+	if err := g.regenerateSkeletonFiles(m); err != nil {
+		return err
+	}
+
 	// Run golangci-lint run --fix if using OS filesystem
 	if _, ok := g.props.FS.(*afero.OsFs); ok {
 		g.props.Logger.Info("Running golangci-lint run --fix...")
@@ -219,4 +223,116 @@ func (g *Generator) buildSkeletonSubcommands(commands []ManifestCommand) ([]temp
 	}
 
 	return subs, nil
+}
+
+// regenerateSkeletonFiles re-applies the project skeleton template files
+// (non-Go files such as CI configs, justfile, .goreleaser.yaml, etc.) from
+// the current GTB version, protecting any user customisations via hash
+// comparison before overwriting. Resulting hashes are persisted back to the
+// manifest so subsequent runs can detect further modifications.
+func (g *Generator) regenerateSkeletonFiles(m Manifest) error {
+	g.props.Logger.Info("Regenerating project skeleton files...")
+
+	_, org, repoName := m.GetReleaseSource()
+
+	// Reconstruct template data from the manifest. GoVersion is not persisted
+	// so we fall back to the current runtime version.
+	data := struct {
+		Name              string
+		Repo              string
+		Host              string
+		ModulePath        string
+		Description       string
+		Org               string
+		RepoName          string
+		ReleaseProvider   string
+		GoToolBaseVersion string
+		GoVersion         string
+		DisabledFeatures  []string
+		EnabledFeatures   []string
+		Private           bool
+		HelpType          string
+		SlackChannel      string
+		SlackTeam         string
+		TeamsChannel      string
+		TeamsTeam         string
+	}{
+		Name:              m.Properties.Name,
+		Repo:              org + "/" + repoName,
+		Host:              m.ReleaseSource.Host,
+		ModulePath:        m.ReleaseSource.Host + "/" + org + "/" + repoName,
+		Description:       string(m.Properties.Description),
+		Org:               org,
+		RepoName:          repoName,
+		ReleaseProvider:   m.ReleaseSource.Type,
+		GoToolBaseVersion: g.currentVersion(),
+		GoVersion:         resolveGoVersion(""),
+		DisabledFeatures:  calculateDisabledFeatures(m.Properties.Features),
+		EnabledFeatures:   calculateEnabledFeatures(m.Properties.Features),
+		Private:           m.ReleaseSource.Private,
+		HelpType:          m.Properties.Help.Type,
+		SlackChannel:      m.Properties.Help.SlackChannel,
+		SlackTeam:         m.Properties.Help.SlackTeam,
+		TeamsChannel:      m.Properties.Help.TeamsChannel,
+		TeamsTeam:         m.Properties.Help.TeamsTeam,
+	}
+
+	storedHashes := m.Hashes
+	if storedHashes == nil {
+		storedHashes = make(map[string]string)
+	}
+
+	writtenHashes, err := g.generateSkeletonTemplateFiles(g.config.Path, data, storedHashes)
+	if err != nil {
+		return err
+	}
+
+	// Merge: keep stored hashes for files the user chose to skip so that
+	// subsequent runs can still detect further modifications to those files.
+	finalHashes := make(map[string]string, len(storedHashes)+len(writtenHashes))
+	for k, v := range storedHashes {
+		finalHashes[k] = v
+	}
+
+	for k, v := range writtenHashes {
+		finalHashes[k] = v
+	}
+
+	return g.persistProjectHashes(finalHashes)
+}
+
+// persistProjectHashes reads the current manifest, updates the top-level
+// Hashes field, and writes it back to disk.
+func (g *Generator) persistProjectHashes(hashes map[string]string) error {
+	manifestPath := filepath.Join(g.config.Path, ".gtb", "manifest.yaml")
+
+	raw, err := afero.ReadFile(g.props.FS, manifestPath)
+	if err != nil {
+		return errors.Newf("failed to read manifest: %w", err)
+	}
+
+	var m Manifest
+	if err := yaml.Unmarshal(raw, &m); err != nil {
+		return errors.Newf("failed to unmarshal manifest: %w", err)
+	}
+
+	m.Hashes = hashes
+
+	f, err := g.props.FS.Create(manifestPath)
+	if err != nil {
+		return errors.Newf("failed to open manifest for writing: %w", err)
+	}
+
+	defer func() { _ = f.Close() }()
+
+	enc := yaml.NewEncoder(f)
+
+	const indent = 2
+	enc.SetIndent(indent)
+
+	if err := enc.Encode(m); err != nil {
+		return errors.Newf("failed to write manifest: %w", err)
+	}
+
+	return nil
 }
