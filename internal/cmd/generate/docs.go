@@ -46,10 +46,6 @@ Examples:
 	cmd.MarkFlagsMutuallyExclusive("command", "package")
 	cmd.MarkFlagsOneRequired("command", "package")
 
-	if err := cmd.MarkFlagRequired("path"); err != nil {
-		panic(err)
-	}
-
 	return cmd
 }
 
