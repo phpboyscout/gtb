@@ -51,18 +51,26 @@ func (m diffPagerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "y", "Y":
 			m.result = diffResultOverwrite
+
 			return m, tea.Quit
 		case "n", "N", "q", "Q", "esc":
 			m.result = diffResultKeep
+
 			return m, tea.Quit
 		}
 	}
 
 	var cmd tea.Cmd
+
 	m.viewport, cmd = m.viewport.Update(msg)
 
 	return m, cmd
 }
+
+const (
+	diffContextLines        = 5
+	diffScrollPctMultiplier = 100
+)
 
 var (
 	diffHeaderStyle  = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("99")).PaddingBottom(1)
@@ -78,7 +86,7 @@ func (m diffPagerModel) View() string {
 		return "Initializing..."
 	}
 
-	scrollPct := int(m.viewport.ScrollPercent() * 100)
+	scrollPct := int(m.viewport.ScrollPercent() * diffScrollPctMultiplier)
 	header := diffHeaderStyle.Render("Diff: " + m.path)
 	footer := diffFooterStyle.Render(fmt.Sprintf("↑/↓ scroll  pgup/pgdn page  y overwrite  n keep  (%d%%)", scrollPct))
 
@@ -115,7 +123,7 @@ func runDiffPager(path string, existing, newContent []byte) bool {
 		B:        difflib.SplitLines(string(newContent)),
 		FromFile: path + " (current)",
 		ToFile:   path + " (incoming)",
-		Context:  5,
+		Context:  diffContextLines,
 	})
 	if err != nil || diff == "" {
 		return false

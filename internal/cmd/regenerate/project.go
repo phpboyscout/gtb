@@ -13,7 +13,7 @@ import (
 type ProjectOptions struct {
 	Path       string
 	Force      bool
-	Overwrite   string
+	Overwrite  string
 	UpdateDocs bool
 }
 
@@ -39,8 +39,12 @@ Does not overwrite implementation files (main.go) unless --force is provided.`,
 }
 
 func (o *ProjectOptions) Run(ctx context.Context, p *props.Props) error {
+	if o.Overwrite == "" {
+		o.Overwrite = "ask"
+	}
+
 	if o.Overwrite != "allow" && o.Overwrite != "deny" && o.Overwrite != "ask" {
-		return fmt.Errorf("invalid --overwrite value %q: must be allow, deny, or ask", o.Overwrite)
+		return fmt.Errorf("%q: %w", o.Overwrite, ErrInvalidOverwriteValue)
 	}
 
 	cfg := &generator.Config{
