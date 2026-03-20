@@ -82,11 +82,16 @@ jobs:
         run: |
           echo "$APPLE_NOTARY_KEY_BASE64" | base64 --decode > notary_key.p8
           for archive in dist/gtb_Darwin_*.tar.gz; do
-            xcrun notarytool submit "$archive" \
+            tmpdir=$(mktemp -d)
+            tar -xzf "$archive" -C "$tmpdir" gtb
+            zipfile="${archive%.tar.gz}_notarize.zip"
+            zip -j "$zipfile" "$tmpdir/gtb"
+            xcrun notarytool submit "$zipfile" \
               --key notary_key.p8 \
               --key-id "$APPLE_NOTARY_KEY_ID" \
               --issuer "$APPLE_NOTARY_ISSUER_ID" \
               --wait
+            rm -rf "$tmpdir" "$zipfile"
           done
           rm notary_key.p8
 
