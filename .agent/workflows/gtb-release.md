@@ -8,6 +8,7 @@ description: Release preparation workflow for GTB
    - Run `git log --oneline $(git describe --tags --abbrev=0)..HEAD` to list commits since the last release.
    - Verify all commits follow the Conventional Commits format (`feat:`, `fix:`, `refactor:`, `chore:`, etc.) — semantic-release uses these to determine the version bump.
    - Flag any commits that are missing a type prefix or use an incorrect type.
+   - Flag any commits that contain AI attribution (`Co-Authored-By:` trailers naming an AI, or references to AI tools in the message body) — these must be amended before release. Commits are the sole responsibility of the developer who created them.
 3. **Determine version bump**:
    - `feat:` commits → minor bump
    - `fix:` / `perf:` / `refactor:` commits → patch bump
