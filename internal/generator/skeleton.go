@@ -171,15 +171,7 @@ func (g *Generator) GenerateSkeleton(ctx context.Context, config SkeletonConfig)
 
 	// Merge: keep stored hashes for any files the user chose to skip so that
 	// subsequent runs can still detect further modifications to those files.
-	finalHashes := make(map[string]string, len(storedHashes)+len(writtenHashes))
-	for k, v := range storedHashes {
-		finalHashes[k] = v
-	}
-	for k, v := range writtenHashes {
-		finalHashes[k] = v
-	}
-
-	if err := g.writeSkeletonManifest(config, finalHashes); err != nil {
+	if err := g.writeSkeletonManifest(config, mergeHashes(storedHashes, writtenHashes)); err != nil {
 		return err
 	}
 
@@ -358,6 +350,7 @@ func (g *Generator) generateSkeletonTemplateFiles(destPath string, data any, sto
 		hash, err := g.renderAndHashSkeletonTemplate(fullPath, relPath, tmplStr, data, storedHashes)
 		if err != nil {
 			g.props.Logger.Warnf("Skipped %s: %v", relPath, err)
+
 			continue
 		}
 
@@ -390,31 +383,7 @@ func (g *Generator) generateSkeletonTemplateFiles(destPath string, data any, sto
 	}
 
 	// Walk the common skeleton assets.
-	if err := fs.WalkDir(skeletonAssets, "assets/skeleton", func(path string, d fs.DirEntry, err error) error {
-		if err != nil || d.IsDir() {
-			return err
-		}
-
-		relPath, err := filepath.Rel("assets/skeleton", path)
-		if err != nil {
-			return errors.Newf("failed to get relative path: %w", err)
-		}
-
-		content, err := skeletonAssets.ReadFile(path)
-		if err != nil {
-			return errors.Newf("failed to read embedded file %s: %w", path, err)
-		}
-
-		hash, err := g.renderAndHashSkeletonTemplate(filepath.Join(destPath, relPath), relPath, string(content), data, storedHashes)
-		if err != nil {
-			g.props.Logger.Warnf("Skipped %s: %v", relPath, err)
-			return nil // non-fatal, continue walk
-		}
-
-		collectedHashes[relPath] = hash
-
-		return nil
-	}); err != nil {
+	if err := g.walkSkeletonAssets(skeletonAssets, "assets/skeleton", destPath, data, storedHashes, collectedHashes); err != nil {
 		return nil, err
 	}
 
@@ -424,35 +393,43 @@ func (g *Generator) generateSkeletonTemplateFiles(destPath string, data any, sto
 		providerFS, providerRoot = skeletonGitLabAssets, "assets/skeleton-gitlab"
 	}
 
-	if err := fs.WalkDir(providerFS, providerRoot, func(path string, d fs.DirEntry, err error) error {
+	if err := g.walkSkeletonAssets(providerFS, providerRoot, destPath, data, storedHashes, collectedHashes); err != nil {
+		return nil, err
+	}
+
+	return collectedHashes, nil
+}
+
+// walkSkeletonAssets walks an embedded filesystem rooted at assetRoot,
+// rendering each file as a template and collecting its hash. Skipped files
+// (e.g. user declined overwrite) are logged as warnings and the walk continues.
+func (g *Generator) walkSkeletonAssets(fsys fs.FS, assetRoot, destPath string, data any, storedHashes, collectedHashes map[string]string) error {
+	return fs.WalkDir(fsys, assetRoot, func(path string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() {
 			return err
 		}
 
-		relPath, err := filepath.Rel(providerRoot, path)
+		relPath, err := filepath.Rel(assetRoot, path)
 		if err != nil {
 			return errors.Newf("failed to get relative path: %w", err)
 		}
 
-		content, err := providerFS.ReadFile(path)
+		content, err := fs.ReadFile(fsys, path)
 		if err != nil {
-			return errors.Newf("failed to read embedded provider file %s: %w", path, err)
+			return errors.Newf("failed to read embedded file %s: %w", path, err)
 		}
 
 		hash, err := g.renderAndHashSkeletonTemplate(filepath.Join(destPath, relPath), relPath, string(content), data, storedHashes)
 		if err != nil {
 			g.props.Logger.Warnf("Skipped %s: %v", relPath, err)
+
 			return nil // non-fatal, continue walk
 		}
 
 		collectedHashes[relPath] = hash
 
 		return nil
-	}); err != nil {
-		return nil, err
-	}
-
-	return collectedHashes, nil
+	})
 }
 
 // renderAndHashSkeletonTemplate renders a template to disk, checking the
@@ -477,24 +454,8 @@ func (g *Generator) renderAndHashSkeletonTemplate(fullPath, relPath, tmplStr str
 
 	// If the file already exists, verify the user has not customised it.
 	if exists, _ := afero.Exists(g.props.FS, fullPath); exists {
-		existingContent, err := afero.ReadFile(g.props.FS, fullPath)
-		if err != nil {
-			return "", errors.Newf("failed to read existing file %s: %w", fullPath, err)
-		}
-
-		currentHash := calculateHash(existingContent)
-		storedHash := storedHashes[relPath]
-
-		if storedHash != "" && storedHash != currentHash && !g.config.Force {
-			g.props.Logger.Warnf("Conflict detected for %s: File has been manually modified.", fullPath)
-
-			if !g.promptOverwrite(fullPath, existingContent, newContent) {
-				g.props.Logger.Warnf("Skipping overwrite of %s", fullPath)
-
-				return "", errors.Newf("overwrite skipped by user")
-			}
-
-			g.props.Logger.Warnf("Overwriting modified file %s", fullPath)
+		if err := g.checkSkeletonConflict(fullPath, relPath, newContent, storedHashes); err != nil {
+			return "", err
 		}
 	}
 
@@ -503,6 +464,33 @@ func (g *Generator) renderAndHashSkeletonTemplate(fullPath, relPath, tmplStr str
 	}
 
 	return calculateHash(newContent), nil
+}
+
+// checkSkeletonConflict compares the on-disk file against its stored hash. If
+// the file has been manually modified it prompts the user; it returns a
+// non-nil error when the write should be skipped.
+func (g *Generator) checkSkeletonConflict(fullPath, relPath string, newContent []byte, storedHashes map[string]string) error {
+	existingContent, err := afero.ReadFile(g.props.FS, fullPath)
+	if err != nil {
+		return errors.Newf("failed to read existing file %s: %w", fullPath, err)
+	}
+
+	storedHash := storedHashes[relPath]
+	if storedHash == "" || storedHash == calculateHash(existingContent) || g.config.Force {
+		return nil
+	}
+
+	g.props.Logger.Warnf("Conflict detected for %s: File has been manually modified.", fullPath)
+
+	if !g.promptOverwrite(fullPath, existingContent, newContent) {
+		g.props.Logger.Warnf("Skipping overwrite of %s", fullPath)
+
+		return errors.Newf("overwrite skipped by user")
+	}
+
+	g.props.Logger.Warnf("Overwriting modified file %s", fullPath)
+
+	return nil
 }
 
 func (g *Generator) writeSkeletonManifest(config SkeletonConfig, fileHashes map[string]string) error {

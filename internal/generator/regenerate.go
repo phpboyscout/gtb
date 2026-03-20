@@ -49,30 +49,37 @@ func (g *Generator) RegenerateProject(ctx context.Context) error {
 		return err
 	}
 
-	// Run golangci-lint run --fix if using OS filesystem
-	if _, ok := g.props.FS.(*afero.OsFs); ok {
-		g.props.Logger.Info("Running golangci-lint run --fix...")
-
-		cmd := exec.CommandContext(ctx, "golangci-lint", "run", "--fix")
-		cmd.Dir = g.config.Path
-		cmd.Stdout = os.Stdout
-
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			g.props.Logger.Warn("Failed to run golangci-lint", "error", err)
-		}
-
-		// Post-processing may have modified tracked skeleton files. Refresh
-		// their hashes so the next run does not flag those changes as
-		// user customisations.
-		if err := g.refreshProjectFileHashes(g.config.Path, writtenSkeletonHashes); err != nil {
-			g.props.Logger.Warn("Failed to refresh project file hashes after post-processing", "error", err)
-		}
-	}
+	g.runPostRegenerationLint(ctx, writtenSkeletonHashes)
 
 	g.props.Logger.Info("Project regeneration complete.")
 
 	return nil
+}
+
+// runPostRegenerationLint runs golangci-lint --fix and refreshes skeleton file
+// hashes on an OS filesystem. It is a no-op for in-memory filesystems used in
+// tests.
+func (g *Generator) runPostRegenerationLint(ctx context.Context, writtenHashes map[string]string) {
+	if _, ok := g.props.FS.(*afero.OsFs); !ok {
+		return
+	}
+
+	g.props.Logger.Info("Running golangci-lint run --fix...")
+
+	cmd := exec.CommandContext(ctx, "golangci-lint", "run", "--fix")
+	cmd.Dir = g.config.Path
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		g.props.Logger.Warn("Failed to run golangci-lint", "error", err)
+	}
+
+	// Post-processing may have modified tracked skeleton files. Refresh
+	// their hashes so the next run does not flag those changes as user customisations.
+	if err := g.refreshProjectFileHashes(g.config.Path, writtenHashes); err != nil {
+		g.props.Logger.Warn("Failed to refresh project file hashes after post-processing", "error", err)
+	}
 }
 
 func (g *Generator) regenerateCommandRecursive(ctx context.Context, cmd ManifestCommand, parentPath []string) error {

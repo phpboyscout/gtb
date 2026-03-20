@@ -13,4 +13,5 @@ var (
 	ErrCommandNotFound         = errors.New("command not found in manifest")
 	ErrUpdateManifestFailed    = errors.New("failed to update manifest")
 	ErrNonInteractive          = errors.New("non-interactive mode detected, missing required flags")
+	ErrInvalidOverwriteValue   = errors.New("invalid --overwrite value: must be allow, deny, or ask")
 )

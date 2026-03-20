@@ -11,6 +11,22 @@ import (
 	"github.com/spf13/afero"
 )
 
+// mergeHashes returns a new map containing all entries from base, with entries
+// from overrides taking precedence. Neither input map is modified.
+func mergeHashes(base, overrides map[string]string) map[string]string {
+	merged := make(map[string]string, len(base)+len(overrides))
+
+	for k, v := range base {
+		merged[k] = v
+	}
+
+	for k, v := range overrides {
+		merged[k] = v
+	}
+
+	return merged
+}
+
 func calculateHash(content []byte) string {
 	hash := sha256.Sum256(content)
 
@@ -70,16 +86,22 @@ func (g *Generator) promptOverwrite(path string, existing, newContent []byte) bo
 		return false
 	}
 
+	return g.askOverwriteAction(path, existing, newContent)
+}
+
+// askOverwriteAction presents an interactive select to the user and returns
+// their decision. When both existing and newContent are non-nil the user can
+// also choose to view a full-screen diff before deciding.
+func (g *Generator) askOverwriteAction(path string, existing, newContent []byte) bool {
 	hasDiff := existing != nil && newContent != nil
 
 	for {
 		action := "no"
 
-		var opts []huh.Option[string]
-		opts = append(opts,
+		opts := []huh.Option[string]{
 			huh.NewOption("Yes — overwrite with incoming version", "yes"),
 			huh.NewOption("No  — keep my changes", "no"),
-		)
+		}
 
 		if hasDiff {
 			opts = append(opts, huh.NewOption("View diff", "view"))
