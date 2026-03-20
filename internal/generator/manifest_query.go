@@ -105,12 +105,12 @@ func (g *Generator) findManifestCommand() (*ManifestCommand, error) {
 
 	data, err := afero.ReadFile(g.props.FS, manifestPath)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to read manifest")
 	}
 
 	var m Manifest
 	if err := yaml.Unmarshal(data, &m); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to unmarshal manifest")
 	}
 
 	pathParts := g.getParentPathParts()

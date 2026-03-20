@@ -36,7 +36,7 @@ func calculateHash(content []byte) string {
 func (g *Generator) verifyHash(path string) error {
 	existingContent, err := afero.ReadFile(g.props.FS, path)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to read file for hash verification")
 	}
 
 	currentHash := calculateHash(existingContent)

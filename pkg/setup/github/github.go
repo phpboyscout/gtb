@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/cockroachdb/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -169,7 +170,7 @@ func RunInitCmd(p *props.Props, dir string) error {
 		// If it doesn't exist, start with defaults
 		v := viper.New()
 		if err := v.ReadConfig(bytes.NewReader(setup.DefaultConfig)); err != nil {
-			return err
+			return errors.Wrap(err, "failed to read default config")
 		}
 
 		c = config.NewContainerFromViper(nil, v)
@@ -182,7 +183,7 @@ func RunInitCmd(p *props.Props, dir string) error {
 	// Ensure directory exists
 	const dirPerm = 0o755
 	if err := p.FS.MkdirAll(dir, dirPerm); err != nil {
-		return err
+		return errors.Wrap(err, "failed to create config directory")
 	}
 
 	return c.WriteConfigAs(targetFile)

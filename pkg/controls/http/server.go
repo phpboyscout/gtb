@@ -3,11 +3,12 @@ package http
 import (
 	"context"
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/cockroachdb/errors"
 
 	"github.com/phpboyscout/gtb/pkg/config"
 	"github.com/phpboyscout/gtb/pkg/controls"
@@ -74,7 +75,7 @@ func Start(cfg config.Containable, logger *slog.Logger, srv *http.Server) contro
 		}
 
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			return err
+			return errors.Wrap(err, "HTTP server failed")
 		}
 
 		return nil

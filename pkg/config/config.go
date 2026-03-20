@@ -46,8 +46,12 @@ func LoadFilesContainer(l *log.Logger, fs afero.Fs, configFiles ...string) (Cont
 	}
 
 	exists, err := afero.Exists(fs, configFiles[0])
-	if err != nil || !exists {
-		return nil, err
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to check config file existence")
+	}
+
+	if !exists {
+		return nil, nil
 	}
 
 	c := initContainer(l, fs)

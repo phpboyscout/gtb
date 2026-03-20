@@ -140,7 +140,7 @@ func (a *OpenAI) Ask(question string, target any) error {
 
 	res, err := a.oai.Chat.Completions.New(a.ctx, a.params)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "AI completion request failed")
 	}
 
 	a.params.Messages = append(a.params.Messages, res.Choices[0].Message.ToParam())

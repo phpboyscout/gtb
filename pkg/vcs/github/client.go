@@ -71,7 +71,7 @@ func (c *GHClient) GetPullRequestByBranch(ctx context.Context, owner, repo, bran
 		ListOptions: listOpts,
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to list pull requests")
 	}
 
 	for _, pr := range prs {
@@ -89,8 +89,11 @@ func (c *GHClient) UpdatePullRequest(ctx context.Context, owner, repo string, nu
 
 func (c *GHClient) AddLabelsToPullRequest(ctx context.Context, owner, repo string, number int, labels []string) error {
 	_, _, err := c.Client.Issues.AddLabelsToIssue(ctx, owner, repo, number, labels)
+	if err != nil {
+		return errors.Wrap(err, "failed to add labels to pull request")
+	}
 
-	return err
+	return nil
 }
 
 func (c *GHClient) CreateRepo(ctx context.Context, owner, slug string) (*github.Repository, error) {
@@ -99,8 +102,11 @@ func (c *GHClient) CreateRepo(ctx context.Context, owner, slug string) (*github.
 		Name:       new(slug),
 		Visibility: new("internal"),
 	})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create repository")
+	}
 
-	return repo, err
+	return repo, nil
 }
 
 func (c *GHClient) UploadKey(ctx context.Context, name string, key []byte) error {
@@ -108,8 +114,11 @@ func (c *GHClient) UploadKey(ctx context.Context, name string, key []byte) error
 		Title: new(name),
 		Key:   new(string(key)),
 	})
+	if err != nil {
+		return errors.Wrap(err, "failed to upload SSH key")
+	}
 
-	return err
+	return nil
 }
 
 func (c *GHClient) ListReleases(ctx context.Context, owner, repo string) ([]string, error) {
