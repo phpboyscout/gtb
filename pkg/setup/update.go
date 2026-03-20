@@ -87,10 +87,13 @@ func SetTimeSinceLast(fs afero.Fs, name string, status timeSinceKey) error {
 
 	if _, err := fs.Stat(lastSinceFile); os.IsNotExist(err) {
 		f, err := fs.Create(lastSinceFile)
+		if err != nil {
+			return errors.Wrap(err, "failed to create timestamp file")
+		}
 
 		defer func() { _ = f.Close() }()
 
-		return err
+		return nil
 	}
 
 	return fs.Chtimes(lastSinceFile, time.Now(), time.Now())
@@ -392,7 +395,7 @@ func (s *SelfUpdater) GetLatestRelease(ctx context.Context) (release.Release, er
 
 		s.NextRelease, err = s.releaseClient.GetReleaseByTag(timeoutCtx, owner, repo, s.version)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "failed to get release by tag")
 		}
 	}
 
@@ -404,7 +407,7 @@ func (s *SelfUpdater) GetLatestRelease(ctx context.Context) (release.Release, er
 
 		s.NextRelease, err = s.releaseClient.GetLatestRelease(timeoutCtx, owner, repo)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "failed to get latest release")
 		}
 	}
 
@@ -425,7 +428,7 @@ func (s *SelfUpdater) extractAndInstallBinary(tarReader *tar.Reader, targetPath 
 
 	tempFile, err := s.Fs.Create(tempFilePath)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to create temp file")
 	}
 
 	// Copy file in chunks to help mitigate a decompression bomb attack
@@ -436,16 +439,16 @@ func (s *SelfUpdater) extractAndInstallBinary(tarReader *tar.Reader, targetPath 
 				break
 			}
 
-			return err
+			return errors.Wrap(err, "failed to copy binary chunk")
 		}
 	}
 
 	if err := tempFile.Close(); err != nil {
-		return err
+		return errors.Wrap(err, "failed to close temp file")
 	}
 
 	if err := s.Fs.Rename(tempFilePath, targetPath); err != nil {
-		return err
+		return errors.Wrap(err, "failed to rename temp file to target")
 	}
 
 	return s.Fs.Chmod(targetPath, filePermExecutable)

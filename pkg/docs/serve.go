@@ -7,6 +7,8 @@ import (
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/cockroachdb/errors"
 )
 
 const (
@@ -23,7 +25,7 @@ func Serve(ctx context.Context, fsys fs.FS, port int) error {
 
 	listener, err := lc.Listen(ctx, "tcp", addr)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to start listener")
 	}
 
 	actualPort := listener.Addr().(*net.TCPAddr).Port

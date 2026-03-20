@@ -19,7 +19,7 @@ func (g *Generator) loadManifest() (*Manifest, error) {
 
 	data, err := afero.ReadFile(g.props.FS, manifestPath)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to read manifest")
 	}
 
 	var m Manifest
@@ -106,7 +106,7 @@ func (c ManifestCommand) MarshalYAML() (any, error) {
 
 	node := &yaml.Node{}
 	if err := node.Encode(alias); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to encode manifest command")
 	}
 
 	if c.Warning != "" {
@@ -131,7 +131,7 @@ func (f ManifestFlag) MarshalYAML() (any, error) {
 
 	node := &yaml.Node{}
 	if err := node.Encode(manifestFlagAlias(f)); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to encode manifest flag")
 	}
 
 	if f.Warning != "" {

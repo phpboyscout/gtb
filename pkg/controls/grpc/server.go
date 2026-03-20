@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net"
 
+	"github.com/cockroachdb/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
@@ -30,13 +31,13 @@ func Start(cfg config.Containable, logger *slog.Logger, srv *grpc.Server) contro
 
 		lis, err := lc.Listen(ctx, "tcp", port)
 		if err != nil {
-			return fmt.Errorf("failed to listen: %w", err)
+			return errors.Wrap(err, "failed to listen")
 		}
 
 		logger.Info(fmt.Sprintf("Starting gRPC server on %s", port))
 
 		if err := srv.Serve(lis); err != nil {
-			return err
+			return errors.Wrap(err, "gRPC server failed")
 		}
 
 		return nil

@@ -71,7 +71,11 @@ func (g *Generator) RegenerateManifest(ctx context.Context) error {
 
 	g.props.Logger.Info("Writing updated manifest.yaml...")
 
-	return afero.WriteFile(g.props.FS, manifestPath, updated, DefaultFileMode)
+	if err := afero.WriteFile(g.props.FS, manifestPath, updated, DefaultFileMode); err != nil {
+		return errors.Wrap(err, "failed to write manifest")
+	}
+
+	return nil
 }
 
 type commandEntry struct {
@@ -134,7 +138,7 @@ func (g *Generator) scanCommands(dir string) ([]ManifestCommand, error) {
 func (g *Generator) scanRecursive(dir string) ([]*commandEntry, error) {
 	entries, err := afero.ReadDir(g.props.FS, dir)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to read commands directory")
 	}
 
 	allCommands := g.scanFileSystem(dir, entries)

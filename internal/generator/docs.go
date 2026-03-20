@@ -177,13 +177,13 @@ func (g *Generator) GenerateDocs(ctx context.Context, target string, isPackage b
 
 	docsDir := filepath.Dir(outputPath)
 	if err := g.props.FS.MkdirAll(docsDir, os.ModePerm); err != nil {
-		return err
+		return errors.Wrap(err, "failed to create docs directory")
 	}
 
 	g.props.Logger.Infof("Writing documentation to %s", outputPath)
 
 	if err := afero.WriteFile(g.props.FS, outputPath, []byte(docsContent), DefaultFileMode); err != nil {
-		return err
+		return errors.Wrap(err, "failed to write documentation file")
 	}
 
 	if isPackage {
@@ -433,7 +433,7 @@ func (g *Generator) handleReadFileTool(ctx context.Context, args json.RawMessage
 		Path string `json:"path"`
 	}
 	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to parse tool arguments")
 	}
 
 	targetPath := filepath.Join(g.config.Path, params.Path)
@@ -451,7 +451,7 @@ func (g *Generator) handleListDirTool(ctx context.Context, args json.RawMessage)
 		Path string `json:"path"`
 	}
 	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to parse tool arguments")
 	}
 
 	targetPath := filepath.Join(g.config.Path, params.Path)
@@ -480,7 +480,7 @@ func (g *Generator) handleGoDocTool(ctx context.Context, args json.RawMessage) (
 		Package string `json:"package"`
 	}
 	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to parse tool arguments")
 	}
 
 	var (
@@ -513,7 +513,7 @@ func (g *Generator) handleGoDocTool(ctx context.Context, args json.RawMessage) (
 func (g *Generator) readCommandSource(path string) (string, error) {
 	info, err := g.props.FS.Stat(path)
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "failed to stat command source path")
 	}
 
 	if info.IsDir() {
@@ -620,7 +620,11 @@ description: Index of project packages.
 %s
 `, strings.Join(packageRows, "\n"))
 
-	return afero.WriteFile(g.props.FS, indexFile, []byte(content), DefaultFileMode)
+	if err := afero.WriteFile(g.props.FS, indexFile, []byte(content), DefaultFileMode); err != nil {
+		return errors.Wrap(err, "failed to write packages index")
+	}
+
+	return nil
 }
 
 func getFrontmatter(fs afero.Fs, docPath string) map[string]any {
@@ -705,7 +709,11 @@ func (g *Generator) generateCommandsIndex() error {
 	indexPath := filepath.Join(g.config.Path, "docs", "commands", "index.md")
 	g.props.Logger.Infof("Updating commands index: %s", indexPath)
 
-	return afero.WriteFile(g.props.FS, indexPath, []byte(content.String()), DefaultFileMode)
+	if err := afero.WriteFile(g.props.FS, indexPath, []byte(content.String()), DefaultFileMode); err != nil {
+		return errors.Wrap(err, "failed to write commands index")
+	}
+
+	return nil
 }
 
 // Legacy doc functions.
@@ -721,14 +729,14 @@ func (g *Generator) generateDocs() error {
 	docsDir = filepath.Join(docsDir, g.config.Name)
 
 	if err := g.props.FS.MkdirAll(docsDir, os.ModePerm); err != nil {
-		return err
+		return errors.Wrap(err, "failed to create docs directory")
 	}
 
 	docPath := filepath.Join(docsDir, "index.md")
 
 	f, err := g.props.FS.Create(docPath)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to create docs file")
 	}
 
 	defer func() {
@@ -736,7 +744,7 @@ func (g *Generator) generateDocs() error {
 	}()
 
 	if _, err = fmt.Fprintf(f, "# %s\n\n%s\n\n%s\n", g.config.Name, g.config.Short, g.config.Long); err != nil {
-		return err
+		return errors.Wrap(err, "failed to write docs content")
 	}
 
 	return g.regenerateMkdocsNav()
@@ -771,7 +779,7 @@ func (g *Generator) regenerateMkdocsNav() error {
 func (g *Generator) loadMkdocsNode(path string) (*yaml.Node, error) {
 	data, err := afero.ReadFile(g.props.FS, path)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to read mkdocs.yml")
 	}
 
 	var rootNode yaml.Node

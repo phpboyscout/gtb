@@ -120,7 +120,7 @@ func (h *StandardErrorHandler) buildLogKVPairs(err error) []any {
 	isDebug := h.Logger.GetLevel() == log.DebugLevel
 
 	if isDebug {
-		kvPairs = append(kvPairs, KeyStacktrace, fmt.Sprintf("%+v", err))
+		kvPairs = append(kvPairs, KeyStacktrace, extractStackTrace(err))
 	}
 
 	if hints := errors.FlattenHints(err); hints != "" {

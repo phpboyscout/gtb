@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/cockroachdb/errors"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 	"gopkg.in/yaml.v3"
@@ -42,7 +43,7 @@ func generateNavFromFS(fsys fs.FS, root string) ([]NavNode, error) {
 
 	entries, err := fs.ReadDir(fsys, root)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to read docs directory")
 	}
 
 	sortEntries(entries)

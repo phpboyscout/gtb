@@ -201,14 +201,14 @@ func (a *embeddedAssets) processAssetFile(fsName, name, ext string) (map[string]
 
 	f, err := ef.Open(name)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to open embedded asset")
 	}
 
 	defer func() { _ = f.Close() }()
 
 	data, err := io.ReadAll(f)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to read embedded asset")
 	}
 
 	return unmarshalStructuredData(data, ext)

@@ -44,7 +44,7 @@ func NewCmdDocs(p *props.Props) *cobra.Command {
 			m := docslib.NewModel(subFS, docslib.WithTitle("Documentation"), docslib.WithAskFunc(askFunc))
 
 			if _, err = tea.NewProgram(m, tea.WithAltScreen()).Run(); err != nil {
-				return err
+				return errors.Wrap(err, "failed to run documentation viewer")
 			}
 
 			return nil

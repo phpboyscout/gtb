@@ -42,12 +42,12 @@ func (g *Generator) registerSubcommand() error {
 
 	fsrc, err := afero.ReadFile(g.props.FS, ctx.parentFile)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to read parent command file")
 	}
 
 	f, err := decorator.Parse(fsrc)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to parse parent command file")
 	}
 
 	g.addSubcommandImport(f, ctx.importPath)
@@ -557,7 +557,7 @@ func (g *Generator) insertGeneric(fn *dst.FuncDecl, stmt dst.Stmt) {
 func (g *Generator) saveAstFile(f *dst.File, path string) error {
 	fout, err := g.props.FS.Create(path)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to create output file")
 	}
 
 	defer func() {
@@ -632,12 +632,12 @@ func (g *Generator) deregisterSubcommand() error {
 
 	fsrc, err := afero.ReadFile(g.props.FS, ctx.parentFile)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to read parent command file")
 	}
 
 	f, err := decorator.Parse(fsrc)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to parse parent command file")
 	}
 
 	g.removeSubcommandImport(f, ctx.importPath)
