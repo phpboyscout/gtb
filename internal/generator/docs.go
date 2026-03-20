@@ -23,6 +23,9 @@ import (
 
 var ErrInvalidPackageName = errors.Newf("invalid package name")
 
+const noAIPackageDocs = "Package documentation requires an AI integration to generate meaningful content. " +
+	"Configure an AI provider and re-run `generate docs --package` to generate full documentation."
+
 var packageDocumentationSystemPrompt = `You are an expert technical writer and software engineer.
 Your goal is to generate comprehensive, professional Markdown documentation for a Go package (Developer Documentation).
 Audience: Software Engineers integrating with or maintaining this package.
@@ -152,18 +155,44 @@ func (g *Generator) GenerateDocs(ctx context.Context, target string, isPackage b
 		return err
 	}
 
-	sysPrompt, outputPath := g.getPromptAndOutput(name, relPath, moduleName, isPackage)
-	userPrompt := fmt.Sprintf("Generate documentation for the following Go command code:\n\n%s", content)
+	sysPrompt, fullCmdName, outputPath := g.getPromptAndOutput(name, relPath, moduleName, isPackage)
 
-	// 4. Call AI
 	provider, model := g.resolveAIConfig()
 
 	client, err := g.createAIDocsClient(ctx, provider, model, sysPrompt)
 	if err != nil {
-		g.props.Logger.Warnf("AI client unavailable: %v. Skipping AI documentation generation.", err)
+		g.props.Logger.Warnf("AI client unavailable: %v", err)
 
-		return nil
+		return g.handleNoAIDocs(name, fullCmdName, outputPath, isPackage)
 	}
+
+	return g.writeAIDocs(ctx, client, content, outputPath, isPackage)
+}
+
+// handleNoAIDocs writes documentation without AI assistance.
+// For commands it generates a basic template from manifest data.
+// For packages it writes a stub file with a notice that AI is required.
+func (g *Generator) handleNoAIDocs(name, fullCmdName, outputPath string, isPackage bool) error {
+	if isPackage {
+		g.props.Logger.Warn(noAIPackageDocs)
+
+		if err := g.writePackageDocStub(name, outputPath); err != nil {
+			return err
+		}
+
+		return g.generatePackagesIndex()
+	}
+
+	if err := g.writeBasicCommandDocs(name, fullCmdName, outputPath); err != nil {
+		return err
+	}
+
+	return g.generateCommandsIndex()
+}
+
+// writeAIDocs sends source content to the AI client and writes the result.
+func (g *Generator) writeAIDocs(ctx context.Context, client chat.ChatClient, content, outputPath string, isPackage bool) error {
+	userPrompt := fmt.Sprintf("Generate documentation for the following Go command code:\n\n%s", content)
 
 	g.props.Logger.Info("Requesting documentation from AI...")
 
@@ -172,7 +201,6 @@ func (g *Generator) GenerateDocs(ctx context.Context, target string, isPackage b
 		return errors.Newf("AI request failed: %w", err)
 	}
 
-	// 5. Sanitize & Write
 	docsContent = g.sanitizeAIOutput(docsContent)
 
 	docsDir := filepath.Dir(outputPath)
@@ -191,6 +219,129 @@ func (g *Generator) GenerateDocs(ctx context.Context, target string, isPackage b
 	}
 
 	return g.generateCommandsIndex()
+}
+
+// writePackageDocStub writes a minimal package doc file with a notice that AI
+// is required to generate meaningful content.
+func (g *Generator) writePackageDocStub(name, outputPath string) error {
+	currentDate := time.Now().Format("2006-01-02")
+
+	content := fmt.Sprintf(`---
+title: %s
+description: ''
+date: %s
+tags: [go, package, %s]
+---
+
+# %s
+
+!!! warning "AI Integration Required"
+    %s
+`, name, currentDate, name, name, noAIPackageDocs)
+
+	docsDir := filepath.Dir(outputPath)
+	if err := g.props.FS.MkdirAll(docsDir, os.ModePerm); err != nil {
+		return errors.Wrap(err, "failed to create docs directory")
+	}
+
+	g.props.Logger.Infof("Writing package documentation stub to %s", outputPath)
+
+	if err := afero.WriteFile(g.props.FS, outputPath, []byte(content), DefaultFileMode); err != nil {
+		return errors.Wrap(err, "failed to write package documentation stub")
+	}
+
+	return nil
+}
+
+// writeBasicCommandDocs generates a markdown template for a command using data
+// available without AI: the manifest (description, flags, subcommands) and
+// generator config (Short/Long when set from generate command flow).
+func (g *Generator) writeBasicCommandDocs(name, fullCmdName, outputPath string) error {
+	currentDate := time.Now().Format("2006-01-02")
+
+	var sb strings.Builder
+
+	fmt.Fprintf(&sb, "---\ntitle: %s\ndate: %s\ntags: [cli, command, %s]\n---\n\n", fullCmdName, currentDate, name)
+	fmt.Fprintf(&sb, "# %s\n\n", fullCmdName)
+
+	// Best-effort manifest lookup — not fatal if missing.
+	var cmd *ManifestCommand
+
+	if m, err := g.loadManifest(); err == nil {
+		parentPath, _ := g.FindCommandParentPath(name)
+		cmd = findCommandAt(m.Commands, parentPath, name)
+	}
+
+	description := ""
+	if cmd != nil && string(cmd.Description) != "" {
+		description = string(cmd.Description)
+	} else if g.config.Short != "" {
+		description = g.config.Short
+	}
+
+	if description != "" {
+		fmt.Fprintf(&sb, "## Description\n\n%s\n\n", description)
+	}
+
+	longDesc := ""
+	if cmd != nil && string(cmd.LongDescription) != "" {
+		longDesc = string(cmd.LongDescription)
+	} else if g.config.Long != "" && g.config.Long != g.config.Short {
+		longDesc = g.config.Long
+	}
+
+	if longDesc != "" {
+		sb.WriteString(longDesc + "\n\n")
+	}
+
+	fmt.Fprintf(&sb, "## Usage\n\n```\n%s [flags]\n```\n\n", fullCmdName)
+
+	if cmd != nil && len(cmd.Flags) > 0 {
+		sb.WriteString("## Flags\n\n")
+		sb.WriteString("| Flag | Description | Default | Required |\n")
+		sb.WriteString("| :--- | :--- | :--- | :--- |\n")
+
+		for _, f := range cmd.Flags {
+			required := ""
+			if f.Required {
+				required = "Yes"
+			}
+
+			defaultVal := ""
+			if f.Default != "" {
+				defaultVal = fmt.Sprintf("`%s`", f.Default)
+			}
+
+			fmt.Fprintf(&sb, "| `--%s` | %s | %s | %s |\n", f.Name, f.Description, defaultVal, required)
+		}
+
+		sb.WriteString("\n")
+	}
+
+	if cmd != nil && len(cmd.Commands) > 0 {
+		sb.WriteString("## Subcommands\n\n")
+		sb.WriteString("| Command | Description |\n")
+		sb.WriteString("| :--- | :--- |\n")
+
+		for _, sub := range cmd.Commands {
+			fmt.Fprintf(&sb, "| `%s %s` | %s |\n", fullCmdName, sub.Name, sub.Description)
+		}
+
+		sb.WriteString("\n")
+	}
+
+	docsDir := filepath.Dir(outputPath)
+	if err := g.props.FS.MkdirAll(docsDir, os.ModePerm); err != nil {
+		return errors.Wrap(err, "failed to create docs directory")
+	}
+
+	g.props.Logger.Infof("Writing basic documentation to %s", outputPath)
+
+	if err := afero.WriteFile(g.props.FS, outputPath, []byte(sb.String()), DefaultFileMode); err != nil {
+		return errors.Wrap(err, "failed to write basic documentation")
+	}
+
+	return nil
 }
 
 func (g *Generator) getModuleNameSafe() string {
@@ -212,8 +363,8 @@ func (g *Generator) readSource(absPath string, isPackage bool) (string, error) {
 	return g.readCommandSource(absPath)
 }
 
-func (g *Generator) getPromptAndOutput(name, relPath, moduleName string, isPackage bool) (sysPrompt, outputPath string) {
-	fullCmdName, outputPath := g.prepareDocsContext(name, relPath, isPackage)
+func (g *Generator) getPromptAndOutput(name, relPath, moduleName string, isPackage bool) (sysPrompt, fullCmdName, outputPath string) {
+	fullCmdName, outputPath = g.prepareDocsContext(name, relPath, isPackage)
 	existingDocsContent := g.readExistingDocs(outputPath)
 
 	currentDate := time.Now().Format("2006-01-02")
@@ -226,7 +377,7 @@ func (g *Generator) getPromptAndOutput(name, relPath, moduleName string, isPacka
 		sysPrompt = fmt.Sprintf(commandDocumentationSystemPrompt, fullCmdName, currentDate, name, aiAuthor, currentDate, existingDocsContent, moduleName, moduleName, moduleName, fullCmdName, fullCmdName)
 	}
 
-	return sysPrompt, outputPath
+	return sysPrompt, fullCmdName, outputPath
 }
 
 func (g *Generator) readExistingDocs(path string) string {
