@@ -239,18 +239,9 @@ tags: [go, package, %s]
     %s
 `, name, currentDate, name, name, noAIPackageDocs)
 
-	docsDir := filepath.Dir(outputPath)
-	if err := g.props.FS.MkdirAll(docsDir, os.ModePerm); err != nil {
-		return errors.Wrap(err, "failed to create docs directory")
-	}
-
 	g.props.Logger.Infof("Writing package documentation stub to %s", outputPath)
 
-	if err := afero.WriteFile(g.props.FS, outputPath, []byte(content), DefaultFileMode); err != nil {
-		return errors.Wrap(err, "failed to write package documentation stub")
-	}
-
-	return nil
+	return g.writeDocFile(outputPath, []byte(content))
 }
 
 // writeBasicCommandDocs generates a markdown template for a command using data
@@ -272,73 +263,90 @@ func (g *Generator) writeBasicCommandDocs(name, fullCmdName, outputPath string) 
 		cmd = findCommandAt(m.Commands, parentPath, name)
 	}
 
+	appendCommandDescription(&sb, cmd, g.config.Short, g.config.Long)
+	fmt.Fprintf(&sb, "## Usage\n\n```\n%s [flags]\n```\n\n", fullCmdName)
+	appendFlagsTable(&sb, cmd)
+	appendSubcommandsTable(&sb, fullCmdName, cmd)
+
+	g.props.Logger.Infof("Writing basic documentation to %s", outputPath)
+
+	return g.writeDocFile(outputPath, []byte(sb.String()))
+}
+
+func appendCommandDescription(sb *strings.Builder, cmd *ManifestCommand, short, long string) {
 	description := ""
 	if cmd != nil && string(cmd.Description) != "" {
 		description = string(cmd.Description)
-	} else if g.config.Short != "" {
-		description = g.config.Short
+	} else if short != "" {
+		description = short
 	}
 
 	if description != "" {
-		fmt.Fprintf(&sb, "## Description\n\n%s\n\n", description)
+		fmt.Fprintf(sb, "## Description\n\n%s\n\n", description)
 	}
 
 	longDesc := ""
 	if cmd != nil && string(cmd.LongDescription) != "" {
 		longDesc = string(cmd.LongDescription)
-	} else if g.config.Long != "" && g.config.Long != g.config.Short {
-		longDesc = g.config.Long
+	} else if long != "" && long != short {
+		longDesc = long
 	}
 
 	if longDesc != "" {
 		sb.WriteString(longDesc + "\n\n")
 	}
+}
 
-	fmt.Fprintf(&sb, "## Usage\n\n```\n%s [flags]\n```\n\n", fullCmdName)
-
-	if cmd != nil && len(cmd.Flags) > 0 {
-		sb.WriteString("## Flags\n\n")
-		sb.WriteString("| Flag | Description | Default | Required |\n")
-		sb.WriteString("| :--- | :--- | :--- | :--- |\n")
-
-		for _, f := range cmd.Flags {
-			required := ""
-			if f.Required {
-				required = "Yes"
-			}
-
-			defaultVal := ""
-			if f.Default != "" {
-				defaultVal = fmt.Sprintf("`%s`", f.Default)
-			}
-
-			fmt.Fprintf(&sb, "| `--%s` | %s | %s | %s |\n", f.Name, f.Description, defaultVal, required)
-		}
-
-		sb.WriteString("\n")
+func appendFlagsTable(sb *strings.Builder, cmd *ManifestCommand) {
+	if cmd == nil || len(cmd.Flags) == 0 {
+		return
 	}
 
-	if cmd != nil && len(cmd.Commands) > 0 {
-		sb.WriteString("## Subcommands\n\n")
-		sb.WriteString("| Command | Description |\n")
-		sb.WriteString("| :--- | :--- |\n")
+	sb.WriteString("## Flags\n\n")
+	sb.WriteString("| Flag | Description | Default | Required |\n")
+	sb.WriteString("| :--- | :--- | :--- | :--- |\n")
 
-		for _, sub := range cmd.Commands {
-			fmt.Fprintf(&sb, "| `%s %s` | %s |\n", fullCmdName, sub.Name, sub.Description)
+	for _, f := range cmd.Flags {
+		required := ""
+		if f.Required {
+			required = "Yes"
 		}
 
-		sb.WriteString("\n")
+		defaultVal := ""
+		if f.Default != "" {
+			defaultVal = fmt.Sprintf("`%s`", f.Default)
+		}
+
+		fmt.Fprintf(sb, "| `--%s` | %s | %s | %s |\n", f.Name, f.Description, defaultVal, required)
 	}
 
+	sb.WriteString("\n")
+}
+
+func appendSubcommandsTable(sb *strings.Builder, fullCmdName string, cmd *ManifestCommand) {
+	if cmd == nil || len(cmd.Commands) == 0 {
+		return
+	}
+
+	sb.WriteString("## Subcommands\n\n")
+	sb.WriteString("| Command | Description |\n")
+	sb.WriteString("| :--- | :--- |\n")
+
+	for _, sub := range cmd.Commands {
+		fmt.Fprintf(sb, "| `%s %s` | %s |\n", fullCmdName, sub.Name, sub.Description)
+	}
+
+	sb.WriteString("\n")
+}
+
+func (g *Generator) writeDocFile(outputPath string, content []byte) error {
 	docsDir := filepath.Dir(outputPath)
 	if err := g.props.FS.MkdirAll(docsDir, os.ModePerm); err != nil {
 		return errors.Wrap(err, "failed to create docs directory")
 	}
 
-	g.props.Logger.Infof("Writing basic documentation to %s", outputPath)
-
-	if err := afero.WriteFile(g.props.FS, outputPath, []byte(sb.String()), DefaultFileMode); err != nil {
-		return errors.Wrap(err, "failed to write basic documentation")
+	if err := afero.WriteFile(g.props.FS, outputPath, content, DefaultFileMode); err != nil {
+		return errors.Wrap(err, "failed to write documentation file")
 	}
 
 	return nil
@@ -813,6 +821,17 @@ func (g *Generator) generateCommandsIndex() error {
 		return errors.Newf("failed to unmarshal manifest: %w", err)
 	}
 
+	indexPath := filepath.Join(g.config.Path, "docs", "commands", "index.md")
+	g.props.Logger.Infof("Updating commands index: %s", indexPath)
+
+	if err := afero.WriteFile(g.props.FS, indexPath, []byte(g.buildCommandsIndexContent(m.Commands)), DefaultFileMode); err != nil {
+		return errors.Wrap(err, "failed to write commands index")
+	}
+
+	return nil
+}
+
+func (g *Generator) buildCommandsIndexContent(commands []ManifestCommand) string {
 	var content strings.Builder
 	content.WriteString("# Commands\n\n")
 	content.WriteString("| Command | Description |\n")
@@ -853,18 +872,9 @@ func (g *Generator) generateCommandsIndex() error {
 		}
 	}
 
-	if len(m.Commands) > 0 {
-		walk(m.Commands, "")
-	}
+	walk(commands, "")
 
-	indexPath := filepath.Join(g.config.Path, "docs", "commands", "index.md")
-	g.props.Logger.Infof("Updating commands index: %s", indexPath)
-
-	if err := afero.WriteFile(g.props.FS, indexPath, []byte(content.String()), DefaultFileMode); err != nil {
-		return errors.Wrap(err, "failed to write commands index")
-	}
-
-	return nil
+	return content.String()
 }
 
 // Legacy doc functions.
