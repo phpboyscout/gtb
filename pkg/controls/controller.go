@@ -181,11 +181,8 @@ func (c *Controller) startErrorAndContextHandler() {
 				if !ctxCancelled {
 					ctxCancelled = true
 
-					c.logger.Warn("Context cancelled: %v", c.GetContext().Err())
+					c.logger.Warn(fmt.Sprintf("Stopping due to context cancellation: %v", c.GetContext().Err()))
 
-					// Only initiate a stop if one is not already in progress,
-					// to prevent a second Stop when handleStopMessage cancels
-					// the context itself to unblock StartFuncs.
 					if !c.IsStopping() && !c.IsStopped() {
 						c.Stop()
 					}
