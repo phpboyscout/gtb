@@ -23,6 +23,8 @@ This is the **Design-First** workflow.
 - **Safety**:
     - It **never overwrites** your custom logic in `main.go` (which is excluded from hashing and generation if it exists).
     - It protects manual changes in `init.go` and `cmd.go` by verifying their content hashes against the manifest before regeneration.
+    - **Child command registrations are preserved.** When a parent `cmd.go` is overwritten, the pipeline's re-registration step reads the manifest to find all existing children and re-injects their `AddCommand` calls. You will not lose child registrations across a regeneration.
+    - **Project-level settings (including help channel configuration) are fully preserved.** The root `cmd.go` is rebuilt via `buildSkeletonRootData`, which maps all manifest fields — including Slack/Teams help-channel settings — into the rendered file. No settings are silently dropped.
 
 ### 2. Code -> Manifest (`regenerate manifest`)
 
