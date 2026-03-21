@@ -1,14 +1,3 @@
-// Package forms provides reusable helpers for building multi-step
-// interactive CLI forms on top of charmbracelet/huh. It adds Escape-
-// to-go-back navigation and a step runner that interprets abort
-// signals as back navigation.
-//
-// All navigable forms render in the alternate screen buffer so that
-// each step gets a clean display and leaves no residual output in the
-// terminal or scrollback when it completes or is aborted.
-//
-// Escape returns to the previous step (or cancels if on the first step).
-// Ctrl+C sends SIGINT which terminates the process immediately.
 package forms
 
 import (
