@@ -235,6 +235,22 @@ func TestStop_ConcurrentCalls(t *testing.T) {
 	assert.Equal(t, int64(1), cntrs.Stopped.Load(), "stop should execute exactly once")
 }
 
+// Compile-time interface satisfaction checks (also exercised at test time).
+var (
+	_ controls.Runner          = (*controls.Controller)(nil)
+	_ controls.StateAccessor   = (*controls.Controller)(nil)
+	_ controls.Configurable    = (*controls.Controller)(nil)
+	_ controls.ChannelProvider = (*controls.Controller)(nil)
+	_ controls.Controllable    = (*controls.Controller)(nil)
+)
+
+func TestControllerOpt_WithConfigurable(t *testing.T) {
+	// Verify that WithoutSignals works with the Configurable-typed parameter.
+	opt := controls.WithoutSignals()
+	c := controls.NewController(context.Background(), opt)
+	assert.Nil(t, c.Signals())
+}
+
 func TestStop_AlreadyStopped(t *testing.T) {
 	c, _, _ := getNewController(context.Background())
 	c.Start()

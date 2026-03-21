@@ -113,47 +113,81 @@ This example demonstrates:
 The controller automatically handles OS signals (SIGINT, SIGTERM) and will gracefully shutdown the HTTP server when these signals are received.
 
 
-## Core Interface
+## Core Interfaces
 
-The `Controllable` interface provides the primary API for service control:
+The controls package uses focused role-based interfaces. Prefer the narrower interfaces where possible; use `Controllable` only when the full method set is needed.
+
+### Runner
+
+Provides service lifecycle operations:
 
 ```go
-type Controllable interface {
-    // Channel access
-    Messages() chan Message
-    Health() chan HealthMessage
-    Errors() chan error
-    Signals() chan os.Signal
+type Runner interface {
+    Start()
+    Stop()
+    IsRunning() bool
+    IsStopped() bool
+    IsStopping() bool
+    Register(id string, opts ...ServiceOption)
+}
+```
 
-    // Channel configuration
+### StateAccessor
+
+Provides read access to controller state and context:
+
+```go
+type StateAccessor interface {
+    GetState() State
+    SetState(state State)
+    GetContext() context.Context
+    GetLogger() *slog.Logger
+}
+```
+
+### Configurable
+
+Provides controller configuration setters:
+
+```go
+type Configurable interface {
     SetErrorsChannel(errs chan error)
     SetMessageChannel(control chan Message)
     SetSignalsChannel(sigs chan os.Signal)
     SetHealthChannel(health chan HealthMessage)
-
-    // Lifecycle management
-    Start()
-    Stop()
     SetWaitGroup(wg *sync.WaitGroup)
-
-    // Context and state management
-    GetContext() context.Context
-    SetState(state State)
-    GetState() State
-
-    // State queries
-    IsRunning() bool
-    IsStopped() bool
-    IsStopping() bool
-
-    // Logging
+    SetShutdownTimeout(d time.Duration)
     SetLogger(logger *slog.Logger)
-    GetLogger() *slog.Logger
-
-    // Service registration
-    Register(id string, start StartFunc, stop StopFunc, status StatusFunc)
 }
 ```
+
+### ChannelProvider
+
+Provides access to controller channels:
+
+```go
+type ChannelProvider interface {
+    Messages() chan Message
+    Health() chan HealthMessage
+    Errors() chan error
+    Signals() chan os.Signal
+}
+```
+
+### Controllable (composed)
+
+The full controller interface, composed of all role-based interfaces:
+
+```go
+type Controllable interface {
+    Runner
+    StateAccessor
+    Configurable
+    ChannelProvider
+}
+```
+
+`ControllerOpt` functions accept the `Configurable` interface since options only need setter methods.
 
 ## Controller Implementation
 
@@ -589,32 +623,7 @@ func TestHTTPServerLifecycle(t *testing.T) {
 
 ## Controllable Interface (For Testing and Mocking)
 
-The `Controllable` interface is primarily used for testing and when working with provided mocks. In production code, use the concrete `Controller` type:
-
-```go
-type Controllable interface {
-    Messages() chan Message
-    Health() chan HealthMessage
-    Errors() chan error
-    Signals() chan os.Signal
-    SetErrorsChannel(errs chan error)
-    SetMessageChannel(control chan Message)
-    SetSignalsChannel(sigs chan os.Signal)
-    SetHealthChannel(health chan HealthMessage)
-    SetWaitGroup(wg *sync.WaitGroup)
-    Start()
-    Stop()
-    GetContext() context.Context
-    SetState(state State)
-    GetState() State
-    SetLogger(logger *slog.Logger)
-    GetLogger() *slog.Logger
-    IsRunning() bool
-    IsStopped() bool
-    IsStopping() bool
-    Register(id string, start StartFunc, stop StopFunc, status StatusFunc)
-}
-```
+The `Controllable` interface is primarily used for testing and when working with provided mocks. In production code, use the concrete `Controller` type. For narrower dependency declarations, prefer `Runner`, `Configurable`, `StateAccessor`, or `ChannelProvider` — see [Core Interfaces](#core-interfaces) above.
 
 ## Built-in Server Controls
 

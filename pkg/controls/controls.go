@@ -53,26 +53,48 @@ type HealthMessage struct {
 	Message string `json:"message"`
 }
 
-type Controllable interface {
-	Messages() chan Message
-	Health() chan HealthMessage
-	Errors() chan error
-	Signals() chan os.Signal
+// Runner provides service lifecycle operations.
+type Runner interface {
+	Start()
+	Stop()
+	IsRunning() bool
+	IsStopped() bool
+	IsStopping() bool
+	Register(id string, opts ...ServiceOption)
+}
+
+// StateAccessor provides read access to controller state and context.
+type StateAccessor interface {
+	GetState() State
+	SetState(state State)
+	GetContext() context.Context
+	GetLogger() *slog.Logger
+}
+
+// Configurable provides controller configuration setters.
+type Configurable interface {
 	SetErrorsChannel(errs chan error)
 	SetMessageChannel(control chan Message)
 	SetSignalsChannel(sigs chan os.Signal)
 	SetHealthChannel(health chan HealthMessage)
 	SetWaitGroup(wg *sync.WaitGroup)
 	SetShutdownTimeout(d time.Duration)
-	Start()
-	Stop()
-	GetContext() context.Context
-	SetState(state State)
-	GetState() State
 	SetLogger(logger *slog.Logger)
-	GetLogger() *slog.Logger
-	IsRunning() bool
-	IsStopped() bool
-	IsStopping() bool
-	Register(id string, opts ...ServiceOption)
+}
+
+// ChannelProvider provides access to controller channels.
+type ChannelProvider interface {
+	Messages() chan Message
+	Health() chan HealthMessage
+	Errors() chan error
+	Signals() chan os.Signal
+}
+
+// Controllable is the full controller interface, composed of all role-based interfaces.
+// Prefer using the narrower interfaces (Runner, Configurable, etc.) where possible.
+type Controllable interface {
+	Runner
+	StateAccessor
+	Configurable
+	ChannelProvider
 }

@@ -249,23 +249,35 @@ func (c *Controller) handleStopMessage() {
 	c.logger.Info("Stopped")
 }
 
-type ControllerOpt func(Controllable)
+// Compile-time interface satisfaction checks.
+var (
+	_ Runner          = (*Controller)(nil)
+	_ StateAccessor   = (*Controller)(nil)
+	_ Configurable    = (*Controller)(nil)
+	_ ChannelProvider = (*Controller)(nil)
+	_ Controllable    = (*Controller)(nil)
+)
 
+// ControllerOpt is a functional option for configuring a Controller.
+type ControllerOpt func(Configurable)
+
+// WithoutSignals disables OS signal handling.
 func WithoutSignals() ControllerOpt {
-	return func(c Controllable) {
+	return func(c Configurable) {
 		c.SetSignalsChannel(nil)
 	}
 }
 
+// WithShutdownTimeout sets the graceful shutdown timeout.
 func WithShutdownTimeout(d time.Duration) ControllerOpt {
-	return func(c Controllable) {
+	return func(c Configurable) {
 		c.SetShutdownTimeout(d)
 	}
 }
 
-// Global Options.
+// WithLogger sets the controller logger.
 func WithLogger(logger *slog.Logger) ControllerOpt {
-	return func(c Controllable) {
+	return func(c Configurable) {
 		c.SetLogger(logger)
 	}
 }

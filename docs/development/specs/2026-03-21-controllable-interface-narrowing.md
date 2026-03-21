@@ -2,7 +2,7 @@
 title: "Controllable Interface Narrowing Specification"
 description: "Split the 18-method Controllable interface into focused role-based interfaces while preserving backward compatibility through interface composition."
 date: 2026-03-21
-status: DRAFT
+status: IMPLEMENTED
 tags:
   - specification
   - controls
