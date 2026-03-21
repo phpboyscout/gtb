@@ -2,7 +2,7 @@
 title: "Security Hardening Specification"
 description: "Fix symlink bypass in path validation, migrate agent tools from os to afero, and add API key protection for git repositories."
 date: 2026-03-21
-status: DRAFT
+status: IMPLEMENTED
 tags:
   - specification
   - security
