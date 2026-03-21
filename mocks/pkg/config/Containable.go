@@ -5,6 +5,7 @@
 package config
 
 import (
+	"io"
 	"time"
 
 	"github.com/phpboyscout/gtb/pkg/config"
@@ -120,8 +121,8 @@ func (_c *MockContainable_AddObserverFunc_Call) RunAndReturn(run func(f func(con
 }
 
 // Dump provides a mock function for the type MockContainable
-func (_mock *MockContainable) Dump() {
-	_mock.Called()
+func (_mock *MockContainable) Dump(w io.Writer) {
+	_mock.Called(w)
 	return
 }
 
@@ -131,13 +132,20 @@ type MockContainable_Dump_Call struct {
 }
 
 // Dump is a helper method to define mock.On call
-func (_e *MockContainable_Expecter) Dump() *MockContainable_Dump_Call {
-	return &MockContainable_Dump_Call{Call: _e.mock.On("Dump")}
+//   - w io.Writer
+func (_e *MockContainable_Expecter) Dump(w interface{}) *MockContainable_Dump_Call {
+	return &MockContainable_Dump_Call{Call: _e.mock.On("Dump", w)}
 }
 
-func (_c *MockContainable_Dump_Call) Run(run func()) *MockContainable_Dump_Call {
+func (_c *MockContainable_Dump_Call) Run(run func(w io.Writer)) *MockContainable_Dump_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run()
+		var arg0 io.Writer
+		if args[0] != nil {
+			arg0 = args[0].(io.Writer)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -147,7 +155,7 @@ func (_c *MockContainable_Dump_Call) Return() *MockContainable_Dump_Call {
 	return _c
 }
 
-func (_c *MockContainable_Dump_Call) RunAndReturn(run func()) *MockContainable_Dump_Call {
+func (_c *MockContainable_Dump_Call) RunAndReturn(run func(w io.Writer)) *MockContainable_Dump_Call {
 	_c.Run(run)
 	return _c
 }

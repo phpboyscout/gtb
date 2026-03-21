@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"sync"
 	"time"
@@ -38,7 +39,7 @@ type Containable interface {
 	AddObserver(o Observable)
 	AddObserverFunc(f func(Containable, chan error))
 	ToJSON() string
-	Dump()
+	Dump(w io.Writer)
 }
 
 // Container container for configuration.
@@ -183,6 +184,6 @@ func (c *Container) ToJSON() string {
 	return string(bs)
 }
 
-func (c *Container) Dump() {
-	fmt.Println(c.ToJSON())
+func (c *Container) Dump(w io.Writer) {
+	_, _ = fmt.Fprintln(w, c.ToJSON())
 }
