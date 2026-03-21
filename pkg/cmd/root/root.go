@@ -347,6 +347,9 @@ func newRootPreRunE(props *p.Props, configPaths []string, mcpLogLevel *slog.Leve
 		// Set config in props
 		props.Config = cfg
 
+		// Validate config for common misconfigurations
+		validateConfig(cfg, props.Logger)
+
 		// Configure logging based on flags and config
 		configureLogging(props, flags, cfg, mcpLogLevel)
 
@@ -403,6 +406,22 @@ func registerFeatureCommands(rootCmd *cobra.Command, props *p.Props, mcpLogLevel
 	if props.Tool.IsEnabled(p.DocsCmd) {
 		if docsCmd := docs.NewCmdDocs(props); docsCmd != nil {
 			rootCmd.AddCommand(docsCmd)
+		}
+	}
+}
+
+// validateConfig warns about common misconfigurations.
+func validateConfig(cfg config.Containable, logger *log.Logger) {
+	emptySetKeys := []string{
+		"github.token",
+		"anthropic.api.key",
+		"openai.api.key",
+		"gemini.api.key",
+	}
+
+	for _, key := range emptySetKeys {
+		if cfg.IsSet(key) && cfg.GetString(key) == "" {
+			logger.Warn(key + " is set but empty — operations using this key will fail")
 		}
 	}
 }
