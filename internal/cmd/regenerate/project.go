@@ -2,8 +2,8 @@ package regenerate
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/cockroachdb/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/phpboyscout/gtb/internal/generator"
@@ -44,7 +44,7 @@ func (o *ProjectOptions) Run(ctx context.Context, p *props.Props) error {
 	}
 
 	if o.Overwrite != "allow" && o.Overwrite != "deny" && o.Overwrite != "ask" {
-		return fmt.Errorf("%q: %w", o.Overwrite, ErrInvalidOverwriteValue)
+		return errors.Wrapf(ErrInvalidOverwriteValue, "%q", o.Overwrite)
 	}
 
 	cfg := &generator.Config{

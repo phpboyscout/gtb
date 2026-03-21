@@ -50,12 +50,12 @@ type ConfigLoadOptions struct {
 func extractFlags(cmd *cobra.Command) (*FlagValues, error) {
 	ci, err := cmd.Flags().GetBool("ci")
 	if err != nil {
-		return nil, fmt.Errorf("failed to get ci flag: %w", err)
+		return nil, errors.Wrap(err, "failed to get ci flag")
 	}
 
 	debug, err := cmd.Flags().GetBool("debug")
 	if err != nil {
-		return nil, fmt.Errorf("failed to get debug flag: %w", err)
+		return nil, errors.Wrap(err, "failed to get debug flag")
 	}
 
 	return &FlagValues{
@@ -73,7 +73,7 @@ func loadAndMergeConfig(opts ConfigLoadOptions) (config.Containable, error) {
 			opts.Props.Logger.Debug("No config file found, loading default configuration")
 			cfg = config.NewReaderContainer(opts.Props.Logger, "yaml", bytes.NewReader(setup.DefaultConfig))
 		} else {
-			return nil, fmt.Errorf("failed to load config: %w", err)
+			return nil, errors.Wrap(err, "failed to load config")
 		}
 	} else if cfg.GetViper().ConfigFileUsed() == "" && len(setup.DefaultConfig) > 0 {
 		opts.Props.Logger.Debug("No config file found (empty allowed), loading default configuration")

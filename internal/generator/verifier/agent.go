@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cockroachdb/errors"
+
 	"github.com/phpboyscout/gtb/internal/agent"
 	"github.com/phpboyscout/gtb/internal/generator/templates"
 	"github.com/phpboyscout/gtb/pkg/chat"
@@ -12,7 +14,7 @@ import (
 )
 
 // AgentVerifier implements the Verifier interface using an autonomous agent loop.
-var ErrVerificationFailed = fmt.Errorf("verification failed or incomplete")
+var ErrVerificationFailed = errors.New("verification failed or incomplete")
 
 type AgentVerifier struct {
 	props *props.Props
@@ -42,7 +44,7 @@ func (v *AgentVerifier) VerifyAndFix(ctx context.Context, projectRoot, cmdDir st
 	}
 
 	if err := aiClient.SetTools(tools); err != nil {
-		return fmt.Errorf("failed to set tools: %w", err)
+		return errors.Wrap(err, "failed to set tools")
 	}
 
 	// 2. Construct the system/initial prompt
@@ -66,7 +68,7 @@ IMPORTANT: Do NOT add any "// Code generated" markers, auto-generated headers, o
 	// The client.Chat method handles the ReAct loop (executing tools until text response).
 	resp, err := aiClient.Chat(ctx, prompt)
 	if err != nil {
-		return fmt.Errorf("agent chat failed: %w", err)
+		return errors.Wrap(err, "agent chat failed")
 	}
 
 	// 4. Check result
@@ -74,5 +76,5 @@ IMPORTANT: Do NOT add any "// Code generated" markers, auto-generated headers, o
 		return nil
 	}
 
-	return fmt.Errorf("%w: %s", ErrVerificationFailed, resp)
+	return errors.Wrapf(ErrVerificationFailed, "%s", resp)
 }

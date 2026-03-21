@@ -599,7 +599,7 @@ func (g *Generator) handleReadFileTool(ctx context.Context, args json.RawMessage
 
 	data, err := afero.ReadFile(g.props.FS, targetPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read file %s: %w", params.Path, err)
+		return nil, errors.Wrapf(err, "failed to read file %s", params.Path)
 	}
 
 	return string(data), nil
@@ -617,7 +617,7 @@ func (g *Generator) handleListDirTool(ctx context.Context, args json.RawMessage)
 
 	entries, err := afero.ReadDir(g.props.FS, targetPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list dir %s: %w", params.Path, err)
+		return nil, errors.Wrapf(err, "failed to list dir %s", params.Path)
 	}
 
 	var names []string
@@ -662,7 +662,7 @@ func (g *Generator) handleGoDocTool(ctx context.Context, args json.RawMessage) (
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("go doc failed: %w\nOutput: %s", err, string(output))
+		return nil, errors.Wrapf(err, "go doc failed\nOutput: %s", string(output))
 	}
 
 	return string(output), nil

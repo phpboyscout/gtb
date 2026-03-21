@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/huh"
+	"github.com/cockroachdb/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/phpboyscout/gtb/internal/generator"
@@ -271,7 +272,7 @@ func (o *SkeletonOptions) Run(ctx context.Context, p *props.Props) error {
 	}
 
 	if o.Overwrite != "allow" && o.Overwrite != "deny" && o.Overwrite != "ask" {
-		return fmt.Errorf("%q: %w", o.Overwrite, ErrInvalidOverwriteValue)
+		return errors.Wrapf(ErrInvalidOverwriteValue, "%q", o.Overwrite)
 	}
 
 	gen := generator.New(p, &generator.Config{

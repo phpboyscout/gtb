@@ -29,12 +29,12 @@ var (
 func isPathAllowed(basePath, requestedPath string) (bool, error) {
 	absBase, err := filepath.Abs(basePath)
 	if err != nil {
-		return false, fmt.Errorf("failed to resolve absolute base path: %w", err)
+		return false, errors.Wrap(err, "failed to resolve absolute base path")
 	}
 
 	absReq, err := filepath.Abs(requestedPath)
 	if err != nil {
-		return false, fmt.Errorf("failed to resolve absolute requested path: %w", err)
+		return false, errors.Wrap(err, "failed to resolve absolute requested path")
 	}
 
 	// Ensure the requested path is within the base path
@@ -70,7 +70,7 @@ func createSingleDirTool(name, description, successMsg string, command []string,
 				Dir string `json:"dir"`
 			}
 			if err := json.Unmarshal(args, &params); err != nil {
-				return nil, fmt.Errorf("invalid arguments: %w", err)
+				return nil, errors.Wrap(err, "invalid arguments")
 			}
 
 			if err := ensurePathAllowed(basePath, params.Dir); err != nil {
@@ -82,7 +82,7 @@ func createSingleDirTool(name, description, successMsg string, command []string,
 
 			output, err := cmd.CombinedOutput()
 			if err != nil {
-				return nil, fmt.Errorf("%w:\n%s", failureErr, string(output))
+				return nil, errors.Wrapf(failureErr, "\n%s", string(output))
 			}
 
 			return successMsg, nil
@@ -103,7 +103,7 @@ func ReadFileTool(basePath string) chat.Tool {
 				Path string `json:"path"`
 			}
 			if err := json.Unmarshal(args, &params); err != nil {
-				return nil, fmt.Errorf("invalid arguments: %w", err)
+				return nil, errors.Wrap(err, "invalid arguments")
 			}
 
 			if err := ensurePathAllowed(basePath, params.Path); err != nil {
@@ -112,7 +112,7 @@ func ReadFileTool(basePath string) chat.Tool {
 
 			content, err := os.ReadFile(params.Path)
 			if err != nil {
-				return nil, fmt.Errorf("failed to read file: %w", err)
+				return nil, errors.Wrap(err, "failed to read file")
 			}
 
 			return string(content), nil
@@ -135,7 +135,7 @@ func WriteFileTool(basePath string) chat.Tool {
 				Content string `json:"content"`
 			}
 			if err := json.Unmarshal(args, &params); err != nil {
-				return nil, fmt.Errorf("invalid arguments: %w", err)
+				return nil, errors.Wrap(err, "invalid arguments")
 			}
 
 			if err := ensurePathAllowed(basePath, params.Path); err != nil {
@@ -144,7 +144,7 @@ func WriteFileTool(basePath string) chat.Tool {
 
 			const filePerm = 0600
 			if err := os.WriteFile(params.Path, []byte(params.Content), filePerm); err != nil {
-				return nil, fmt.Errorf("failed to write file: %w", err)
+				return nil, errors.Wrap(err, "failed to write file")
 			}
 
 			return fmt.Sprintf("Successfully wrote to %s", params.Path), nil
@@ -165,7 +165,7 @@ func ListDirTool(basePath string) chat.Tool {
 				Path string `json:"path"`
 			}
 			if err := json.Unmarshal(args, &params); err != nil {
-				return nil, fmt.Errorf("invalid arguments: %w", err)
+				return nil, errors.Wrap(err, "invalid arguments")
 			}
 
 			if err := ensurePathAllowed(basePath, params.Path); err != nil {
@@ -174,7 +174,7 @@ func ListDirTool(basePath string) chat.Tool {
 
 			entries, err := os.ReadDir(params.Path)
 			if err != nil {
-				return nil, fmt.Errorf("failed to list directory: %w", err)
+				return nil, errors.Wrap(err, "failed to list directory")
 			}
 
 			var result []string
@@ -232,7 +232,7 @@ func GoGetTool(basePath string) chat.Tool {
 				Dir     string `json:"dir"`
 			}
 			if err := json.Unmarshal(args, &params); err != nil {
-				return nil, fmt.Errorf("invalid arguments: %w", err)
+				return nil, errors.Wrap(err, "invalid arguments")
 			}
 
 			if err := ensurePathAllowed(basePath, params.Dir); err != nil {
@@ -250,7 +250,7 @@ func GoGetTool(basePath string) chat.Tool {
 
 			output, err := cmd.CombinedOutput()
 			if err != nil {
-				return nil, fmt.Errorf("%w: %w\nOutput: %s", ErrGoGetFailed, err, string(output))
+				return nil, errors.Wrapf(ErrGoGetFailed, "%s\nOutput: %s", err, string(output))
 			}
 
 			return fmt.Sprintf("Successfully got %s", params.Package), nil
