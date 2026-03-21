@@ -2,7 +2,7 @@
 title: "Trivial Code Improvements Specification"
 description: "Consolidate mechanical, low-risk code quality improvements including error wrapping migration, godoc additions, config interface documentation, and chat provider default tuning."
 date: 2026-03-21
-status: DRAFT
+status: IMPLEMENTED
 tags:
   - specification
   - code-quality
