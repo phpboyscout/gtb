@@ -178,7 +178,16 @@ func (g *Gemini) chatNonStreaming(ctx context.Context, chat *genai.Chat, parts [
 		var toolResultParts []*genai.Part
 
 		for _, fc := range funcCalls {
-			toolResultParts = append(toolResultParts, g.executeTool(ctx, fc))
+			argsB, err := json.Marshal(fc.Args)
+			if err != nil {
+				g.props.Logger.Error("Failed to marshal tool arguments", "tool", fc.Name, "error", err)
+				toolResultParts = append(toolResultParts, genai.NewPartFromFunctionResponse(fc.Name, map[string]any{"error": "failed to marshal arguments"}))
+
+				continue
+			}
+
+			result := executeTool(ctx, g.props.Logger, g.tools, fc.Name, argsB)
+			toolResultParts = append(toolResultParts, genai.NewPartFromFunctionResponse(fc.Name, map[string]any{"result": result}))
 		}
 
 		currentParts = toolResultParts
@@ -194,36 +203,6 @@ func (g *Gemini) handleGeminiError(err error, step int) error {
 	}
 
 	return errors.Newf("gemini send message failed (step %d): %v", step, err)
-}
-
-func (g *Gemini) executeTool(ctx context.Context, fc *genai.FunctionCall) *genai.Part {
-	g.props.Logger.Info("Gemini Tool Call", "tool", fc.Name)
-	g.props.Logger.Debug("Gemini Tool Parameters", "tool", fc.Name, "args", fc.Args)
-
-	tool, ok := g.tools[fc.Name]
-	if !ok {
-		g.props.Logger.Warn("Tool not found", "tool", fc.Name)
-
-		return genai.NewPartFromFunctionResponse(fc.Name, map[string]any{"error": "tool not found"})
-	}
-
-	argsB, err := json.Marshal(fc.Args)
-	if err != nil {
-		g.props.Logger.Error("Failed to marshal tool arguments", "tool", fc.Name, "error", err)
-
-		return genai.NewPartFromFunctionResponse(fc.Name, map[string]any{"error": "failed to marshal arguments"})
-	}
-
-	out, err := tool.Handler(ctx, argsB)
-	if err != nil {
-		g.props.Logger.Error("Tool execution failed", "tool", fc.Name, "error", err)
-
-		return genai.NewPartFromFunctionResponse(fc.Name, map[string]any{"error": err.Error()})
-	}
-
-	g.props.Logger.Info("Tool executed successfully", "tool", fc.Name)
-
-	return genai.NewPartFromFunctionResponse(fc.Name, map[string]any{"result": out})
 }
 
 func (g *Gemini) cloneConfig() *genai.GenerateContentConfig {

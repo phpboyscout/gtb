@@ -3,7 +3,6 @@ package chat
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"strings"
 
 	"github.com/anthropics/anthropic-sdk-go"
@@ -200,7 +199,7 @@ func (c *Claude) Chat(ctx context.Context, prompt string) (string, error) {
 			switch content.Type {
 			case "tool_use":
 				hasToolUse = true
-				result := c.executeTool(ctx, content.Name, content.Input)
+				result := executeTool(ctx, c.props.Logger, c.tools, content.Name, content.Input)
 				toolResults = append(toolResults, anthropic.NewToolResultBlock(content.ID, result, false))
 			case "text":
 				fullText.WriteString(content.Text)
@@ -217,36 +216,6 @@ func (c *Claude) Chat(ctx context.Context, prompt string) (string, error) {
 	}
 
 	return "", errors.Newf("Claude reached maximum ReAct steps (%d) without a final answer", maxSteps)
-}
-
-func (c *Claude) executeTool(ctx context.Context, toolName string, input json.RawMessage) string {
-	c.props.Logger.Info("Claude Tool Call", "tool", toolName)
-	c.props.Logger.Debug("Claude Tool Parameters", "tool", toolName, "args", input)
-
-	tool, ok := c.tools[toolName]
-	if !ok {
-		return fmt.Sprintf("Error: Tool %s not found", toolName)
-	}
-
-	out, err := tool.Handler(ctx, input)
-	if err != nil {
-		c.props.Logger.Warn("Tool execution failed", "tool", toolName, "error", err)
-
-		return fmt.Sprintf("Error: %v", err)
-	}
-
-	if s, ok := out.(string); ok {
-		return s
-	}
-
-	b, err := json.Marshal(out)
-	if err != nil {
-		c.props.Logger.Warn("Failed to marshal tool result", "tool", toolName, "error", err)
-
-		return fmt.Sprintf("Error: failed to marshal tool result: %v", err)
-	}
-
-	return string(b)
 }
 
 func resContentToBlocks(content []anthropic.ContentBlockUnion) []anthropic.ContentBlockParamUnion {

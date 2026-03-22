@@ -2,7 +2,7 @@
 title: "Chat Provider Deduplication Specification"
 description: "Extract duplicated tool execution and ReAct loop logic from Claude, OpenAI, and Gemini providers into shared helpers."
 date: 2026-03-21
-status: DRAFT
+status: IMPLEMENTED
 tags:
   - specification
   - chat
@@ -24,7 +24,7 @@ Date
 :   21 March 2026
 
 Status
-:   DRAFT
+:   IMPLEMENTED
 
 ---
 

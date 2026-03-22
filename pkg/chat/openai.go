@@ -3,7 +3,6 @@ package chat
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"os"
 
 	"github.com/charmbracelet/log"
@@ -297,7 +296,7 @@ func (a *OpenAI) Chat(ctx context.Context, prompt string) (string, error) {
 			a.logger.Info("OpenAI Tool Call count", "count", len(msg.ToolCalls))
 
 			for _, toolCall := range msg.ToolCalls {
-				result := a.executeTool(ctx, toolCall.Function.Name, toolCall.Function.Arguments)
+				result := executeTool(ctx, a.logger, a.tools, toolCall.Function.Name, json.RawMessage(toolCall.Function.Arguments))
 				a.params.Messages = append(a.params.Messages, openai.ToolMessage(result, toolCall.ID))
 			}
 
@@ -308,38 +307,4 @@ func (a *OpenAI) Chat(ctx context.Context, prompt string) (string, error) {
 	}
 
 	return "", errors.Newf("OpenAI reached maximum ReAct steps (%d) without a final answer", maxSteps)
-}
-
-func (a *OpenAI) executeTool(ctx context.Context, toolName, toolArgs string) string {
-	a.logger.Info("OpenAI Tool Call", "tool", toolName)
-	a.logger.Debug("OpenAI Tool Parameters", "tool", toolName, "args", toolArgs)
-
-	tool, ok := a.tools[toolName]
-	if !ok {
-		a.logger.Warn("Tool not found", "tool", toolName)
-
-		return fmt.Sprintf("Error: Tool %s not found", toolName)
-	}
-
-	out, err := tool.Handler(ctx, []byte(toolArgs))
-	if err != nil {
-		a.logger.Warn("Tool execution failed", "tool", toolName, "error", err)
-
-		return fmt.Sprintf("Error: %v", err)
-	}
-
-	if s, ok := out.(string); ok {
-		return s
-	}
-
-	b, err := json.Marshal(out)
-	if err != nil {
-		a.logger.Warn("Failed to marshal tool result", "tool", toolName, "error", err)
-
-		return fmt.Sprintf("Error: failed to marshal tool result: %v", err)
-	}
-
-	a.logger.Info("Tool executed successfully", "tool", toolName)
-
-	return string(b)
 }
