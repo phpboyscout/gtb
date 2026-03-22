@@ -59,16 +59,30 @@ type Tool struct {
 }
 
 // ChatClient defines the interface for interacting with a chat service.
+//
+// Implementations are NOT safe for concurrent use by multiple goroutines.
+// Each goroutine should use its own ChatClient instance.
+//
+// Message history from Add() calls persists across Chat() and Ask() calls
+// within the same client instance. To start a fresh conversation, create
+// a new client via chat.New().
 type ChatClient interface {
-	// Add appends a user message to the conversation history without triggering a completion.
-	Add(prompt string) error
-	// Ask sends a question to the chat service and unmarshals the response into the target struct.
-	Ask(question string, target any) error
-	// SetTools configures the tools available to the AI.
+	// Add appends a user message to the conversation history without
+	// triggering a completion. The message persists for subsequent
+	// Chat() or Ask() calls.
+	Add(ctx context.Context, prompt string) error
+	// Ask sends a question and unmarshals the structured response into
+	// target. If Config.ResponseSchema was set during construction, the
+	// provider enforces that schema. If no schema is set, the provider
+	// returns the raw text content unmarshalled into target (which must
+	// be a *string or implement json.Unmarshaler).
+	Ask(ctx context.Context, question string, target any) error
+	// SetTools configures the tools available to the AI. This replaces
+	// (not appends to) any previously set tools.
 	SetTools(tools []Tool) error
-	// Chat sends a message and returns the response content.
-	// If the AI requests tool calls, the provider may handle them internally or return them.
-	// For the Agent loop, we expect this method to return the AI's text response or trigger tool usage.
+	// Chat sends a message and returns the response content. If tools
+	// are configured, the provider handles tool calls internally via a
+	// ReAct loop bounded by Config.MaxSteps (default 20).
 	Chat(ctx context.Context, prompt string) (string, error)
 }
 

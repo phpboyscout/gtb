@@ -39,16 +39,16 @@ func (_m *MockChatClient) EXPECT() *MockChatClient_Expecter {
 }
 
 // Add provides a mock function for the type MockChatClient
-func (_mock *MockChatClient) Add(prompt string) error {
-	ret := _mock.Called(prompt)
+func (_mock *MockChatClient) Add(ctx context.Context, prompt string) error {
+	ret := _mock.Called(ctx, prompt)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Add")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(string) error); ok {
-		r0 = returnFunc(prompt)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = returnFunc(ctx, prompt)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -61,19 +61,25 @@ type MockChatClient_Add_Call struct {
 }
 
 // Add is a helper method to define mock.On call
+//   - ctx context.Context
 //   - prompt string
-func (_e *MockChatClient_Expecter) Add(prompt interface{}) *MockChatClient_Add_Call {
-	return &MockChatClient_Add_Call{Call: _e.mock.On("Add", prompt)}
+func (_e *MockChatClient_Expecter) Add(ctx interface{}, prompt interface{}) *MockChatClient_Add_Call {
+	return &MockChatClient_Add_Call{Call: _e.mock.On("Add", ctx, prompt)}
 }
 
-func (_c *MockChatClient_Add_Call) Run(run func(prompt string)) *MockChatClient_Add_Call {
+func (_c *MockChatClient_Add_Call) Run(run func(ctx context.Context, prompt string)) *MockChatClient_Add_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 string
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(string)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -84,22 +90,22 @@ func (_c *MockChatClient_Add_Call) Return(err error) *MockChatClient_Add_Call {
 	return _c
 }
 
-func (_c *MockChatClient_Add_Call) RunAndReturn(run func(prompt string) error) *MockChatClient_Add_Call {
+func (_c *MockChatClient_Add_Call) RunAndReturn(run func(ctx context.Context, prompt string) error) *MockChatClient_Add_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // Ask provides a mock function for the type MockChatClient
-func (_mock *MockChatClient) Ask(question string, target any) error {
-	ret := _mock.Called(question, target)
+func (_mock *MockChatClient) Ask(ctx context.Context, question string, target any) error {
+	ret := _mock.Called(ctx, question, target)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Ask")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(string, any) error); ok {
-		r0 = returnFunc(question, target)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, any) error); ok {
+		r0 = returnFunc(ctx, question, target)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -112,25 +118,31 @@ type MockChatClient_Ask_Call struct {
 }
 
 // Ask is a helper method to define mock.On call
+//   - ctx context.Context
 //   - question string
 //   - target any
-func (_e *MockChatClient_Expecter) Ask(question interface{}, target interface{}) *MockChatClient_Ask_Call {
-	return &MockChatClient_Ask_Call{Call: _e.mock.On("Ask", question, target)}
+func (_e *MockChatClient_Expecter) Ask(ctx interface{}, question interface{}, target interface{}) *MockChatClient_Ask_Call {
+	return &MockChatClient_Ask_Call{Call: _e.mock.On("Ask", ctx, question, target)}
 }
 
-func (_c *MockChatClient_Ask_Call) Run(run func(question string, target any)) *MockChatClient_Ask_Call {
+func (_c *MockChatClient_Ask_Call) Run(run func(ctx context.Context, question string, target any)) *MockChatClient_Ask_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 string
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(string)
+			arg0 = args[0].(context.Context)
 		}
-		var arg1 any
+		var arg1 string
 		if args[1] != nil {
-			arg1 = args[1].(any)
+			arg1 = args[1].(string)
+		}
+		var arg2 any
+		if args[2] != nil {
+			arg2 = args[2].(any)
 		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -141,7 +153,7 @@ func (_c *MockChatClient_Ask_Call) Return(err error) *MockChatClient_Ask_Call {
 	return _c
 }
 
-func (_c *MockChatClient_Ask_Call) RunAndReturn(run func(question string, target any) error) *MockChatClient_Ask_Call {
+func (_c *MockChatClient_Ask_Call) RunAndReturn(run func(ctx context.Context, question string, target any) error) *MockChatClient_Ask_Call {
 	_c.Call.Return(run)
 	return _c
 }

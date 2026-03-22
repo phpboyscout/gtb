@@ -23,13 +23,13 @@ type MockChatClient struct {
 	mock.Mock
 }
 
-func (m *MockChatClient) Add(prompt string) error {
-	args := m.Called(prompt)
+func (m *MockChatClient) Add(ctx context.Context, prompt string) error {
+	args := m.Called(ctx, prompt)
 	return args.Error(0)
 }
 
-func (m *MockChatClient) Ask(question string, target any) error {
-	args := m.Called(question, target)
+func (m *MockChatClient) Ask(ctx context.Context, question string, target any) error {
+	args := m.Called(ctx, question, target)
 	return args.Error(0)
 }
 

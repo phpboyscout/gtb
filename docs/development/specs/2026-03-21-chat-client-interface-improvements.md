@@ -2,7 +2,7 @@
 title: "ChatClient Interface Improvements Specification"
 description: "Add context.Context to Add and Ask methods, document thread safety contract, and specify the full ChatClient interface behavioural contract."
 date: 2026-03-21
-status: DRAFT
+status: IMPLEMENTED
 tags:
   - specification
   - chat

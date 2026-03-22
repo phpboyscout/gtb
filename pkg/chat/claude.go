@@ -19,7 +19,6 @@ func init() {
 
 // Claude implements the ChatClient interface using Anthropic's official Go SDK.
 type Claude struct {
-	ctx        context.Context
 	client     anthropic.Client
 	props      *props.Props
 	messages   []anthropic.MessageParam
@@ -46,7 +45,6 @@ func newClaude(ctx context.Context, p *props.Props, cfg Config) (ChatClient, err
 	)
 
 	c := &Claude{
-		ctx:    ctx,
 		props:  p,
 		client: client,
 		cfg:    cfg,
@@ -60,14 +58,14 @@ func newClaude(ctx context.Context, p *props.Props, cfg Config) (ChatClient, err
 }
 
 // Add appends a new user message to the chat session.
-func (c *Claude) Add(prompt string) error {
+func (c *Claude) Add(_ context.Context, prompt string) error {
 	c.messages = append(c.messages, anthropic.NewUserMessage(anthropic.NewTextBlock(prompt)))
 
 	return nil
 }
 
 // Ask sends a question to the Claude chat client and expects a structured response.
-func (c *Claude) Ask(question string, target any) error {
+func (c *Claude) Ask(ctx context.Context, question string, target any) error {
 	c.messages = append(c.messages, anthropic.NewUserMessage(anthropic.NewTextBlock(question)))
 
 	model := c.cfg.Model
@@ -95,7 +93,7 @@ func (c *Claude) Ask(question string, target any) error {
 		c.applyResponseSchema(&params, toolName)
 	}
 
-	resp, err := c.client.Messages.New(c.ctx, params)
+	resp, err := c.client.Messages.New(ctx, params)
 	if err != nil {
 		return errors.Newf("failed to call Anthropic API: %w", err)
 	}
@@ -155,7 +153,7 @@ func (c *Claude) SetTools(tools []Tool) error {
 
 // Chat sends a message and returns the response content.
 func (c *Claude) Chat(ctx context.Context, prompt string) (string, error) {
-	if err := c.Add(prompt); err != nil {
+	if err := c.Add(ctx, prompt); err != nil {
 		return "", err
 	}
 

@@ -19,7 +19,6 @@ func init() {
 // This provider is useful in environments where direct API access to api.anthropic.com is
 // blocked but the pre-authenticated claude binary is permitted.
 type ClaudeLocal struct {
-	ctx       context.Context
 	props     *props.Props
 	cfg       Config
 	sessionID string   // captured after first Chat/Ask call; used for --resume
@@ -37,14 +36,13 @@ func newClaudeLocal(ctx context.Context, p *props.Props, cfg Config) (ChatClient
 	}
 
 	return &ClaudeLocal{
-		ctx:   ctx,
 		props: p,
 		cfg:   cfg,
 	}, nil
 }
 
 // Add buffers a user message to be prepended to the next Chat or Ask call.
-func (c *ClaudeLocal) Add(prompt string) error {
+func (c *ClaudeLocal) Add(_ context.Context, prompt string) error {
 	c.pending = append(c.pending, prompt)
 
 	return nil
@@ -52,7 +50,7 @@ func (c *ClaudeLocal) Add(prompt string) error {
 
 // Ask sends a question to the local claude binary and unmarshals the structured response
 // into the target using --json-schema for schema-enforced output.
-func (c *ClaudeLocal) Ask(question string, target any) error {
+func (c *ClaudeLocal) Ask(ctx context.Context, question string, target any) error {
 	combined := c.buildPrompt(question)
 
 	args := c.buildArgs(combined)
@@ -66,7 +64,7 @@ func (c *ClaudeLocal) Ask(question string, target any) error {
 		args = append(args, "--json-schema", string(schemaBytes))
 	}
 
-	result, sessionID, err := c.runClaude(args)
+	result, sessionID, err := c.runClaude(ctx, args)
 	if err != nil {
 		return err
 	}
@@ -96,7 +94,7 @@ func (c *ClaudeLocal) Chat(ctx context.Context, prompt string) (string, error) {
 	combined := c.buildPrompt(prompt)
 	args := c.buildArgs(combined)
 
-	result, sessionID, err := c.runClaude(args)
+	result, sessionID, err := c.runClaude(ctx, args)
 	if err != nil {
 		return "", err
 	}
@@ -148,10 +146,10 @@ type claudeResult struct {
 }
 
 // runClaude executes the claude subprocess and returns the result text and session ID.
-func (c *ClaudeLocal) runClaude(args []string) (result string, sessionID string, err error) {
+func (c *ClaudeLocal) runClaude(ctx context.Context, args []string) (result string, sessionID string, err error) {
 	c.props.Logger.Debug("ClaudeLocal subprocess", "args", args)
 
-	cmd := exec.CommandContext(c.ctx, "claude", args...)
+	cmd := exec.CommandContext(ctx, "claude", args...)
 
 	out, cmdErr := cmd.Output()
 	if cmdErr != nil {

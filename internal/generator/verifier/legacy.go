@@ -64,7 +64,7 @@ func (v *LegacyVerifier) VerifyAndFix(ctx context.Context, projectRoot, cmdDir s
 
 			fixPrompt := fmt.Sprintf("The code you generated failed verification with the following errors:\n%s\n\nPlease fix the code.", lastVerificationErrors)
 
-			if err := aiClient.Ask(fixPrompt, &resp); err != nil {
+			if err := aiClient.Ask(ctx, fixPrompt, &resp); err != nil {
 				v.props.Logger.Warnf("AI fix failed: %v", err)
 
 				break

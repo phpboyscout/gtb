@@ -553,7 +553,7 @@ func (g *Generator) startAIGeneration(ctx context.Context, importPath, packageNa
 	}
 
 	var resp verifier.AIResponse
-	if err := client.Ask(input, &resp); err != nil {
+	if err := client.Ask(ctx, input, &resp); err != nil {
 		return client, verifier.AIResponse{}, err
 	}
 

@@ -84,7 +84,7 @@ type AnalysisResult struct {
 
 var result AnalysisResult
 
-err := client.Ask("Analyze this error log and suggest fixes...", &result)
+err := client.Ask(ctx, "Analyze this error log and suggest fixes...", &result)
 if err != nil {
     // Handle error
 }
@@ -328,9 +328,16 @@ func robustChat(ctx context.Context, p *props.Props, prompt string) (string, err
 }
 ```
 
+## Thread Safety
+
+`ChatClient` implementations are **not safe for concurrent use** by multiple goroutines. This is consistent with Go conventions (`http.Request`, `json.Decoder`, etc.). Each goroutine should create its own client instance via `chat.New()`.
+
+Message history from `Add()` calls persists across `Chat()` and `Ask()` calls within the same client instance. To start a fresh conversation, create a new client.
+
 ## Best Practices
 
-- **Context Management**: Always pass `context.Context` to ensure operations can be cancelled or timed out.
+- **Context Management**: All methods that perform I/O (`Add`, `Ask`, `Chat`) accept `context.Context` as the first parameter. Always pass an appropriate context to ensure operations can be cancelled or timed out.
+- **One Client Per Goroutine**: Do not share a `ChatClient` instance across goroutines. Create a new client for each concurrent conversation.
 - **System Prompts**: Use `SystemPrompt` in the config to define the AI's persona and constraints.
 - **Validation**: Validate AI outputs before using them in critical code paths, even when using structured `Ask` responses.
 - **Token Limits**: Be mindful of token limits when building conversation history; consider summarizing or truncating long sessions.

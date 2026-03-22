@@ -23,7 +23,6 @@ func init() {
 // OpenAI implements the ChatClient interface for interacting with OpenAI's API
 // and any OpenAI-compatible API endpoint.
 type OpenAI struct {
-	ctx    context.Context
 	oai    openai.Client
 	params openai.ChatCompletionNewParams
 	logger *log.Logger
@@ -89,7 +88,6 @@ func newOpenAI(ctx context.Context, props *props.Props, cfg Config) (ChatClient,
 	}
 
 	return &OpenAI{
-		ctx:    ctx,
 		config: props.Config,
 		logger: props.Logger,
 		oai:    client,
@@ -99,7 +97,7 @@ func newOpenAI(ctx context.Context, props *props.Props, cfg Config) (ChatClient,
 }
 
 // Add appends a new user message to the chat session.
-func (a *OpenAI) Add(prompt string) error {
+func (a *OpenAI) Add(_ context.Context, prompt string) error {
 	if prompt == "" {
 		return errors.New("prompt cannot be empty")
 	}
@@ -127,14 +125,14 @@ func (a *OpenAI) Add(prompt string) error {
 
 // Ask sends a question to the OpenAI chat client and expects a structured response
 // which is unmarshalled into the target interface.
-func (a *OpenAI) Ask(question string, target any) error {
+func (a *OpenAI) Ask(ctx context.Context, question string, target any) error {
 	if question == "" {
 		return errors.New("question cannot be empty")
 	}
 
 	a.params.Messages = append(a.params.Messages, openai.UserMessage(question))
 
-	res, err := a.oai.Chat.Completions.New(a.ctx, a.params)
+	res, err := a.oai.Chat.Completions.New(ctx, a.params)
 	if err != nil {
 		return errors.Wrap(err, "AI completion request failed")
 	}
@@ -261,7 +259,7 @@ func (a *OpenAI) SetTools(tools []Tool) error {
 // Chat sends a message and returns the response content.
 // It handles tool calls internally.
 func (a *OpenAI) Chat(ctx context.Context, prompt string) (string, error) {
-	if err := a.Add(prompt); err != nil {
+	if err := a.Add(ctx, prompt); err != nil {
 		return "", err
 	}
 

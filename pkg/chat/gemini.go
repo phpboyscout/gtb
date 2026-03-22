@@ -18,7 +18,6 @@ func init() {
 
 // Gemini implements the ChatClient interface using Google's Generative AI SDK.
 type Gemini struct {
-	ctx     context.Context
 	client  *genai.Client
 	model   string
 	config  *genai.GenerateContentConfig
@@ -64,7 +63,6 @@ func newGemini(ctx context.Context, p *props.Props, cfg Config) (ChatClient, err
 	}
 
 	return &Gemini{
-		ctx:     ctx,
 		client:  client,
 		model:   modelName,
 		config:  baseCfg,
@@ -76,7 +74,7 @@ func newGemini(ctx context.Context, p *props.Props, cfg Config) (ChatClient, err
 }
 
 // Add appends a user message to the conversation history.
-func (g *Gemini) Add(prompt string) error {
+func (g *Gemini) Add(_ context.Context, prompt string) error {
 	g.history = append(g.history, &genai.Content{
 		Role:  genai.RoleUser,
 		Parts: []*genai.Part{{Text: prompt}},
@@ -86,16 +84,16 @@ func (g *Gemini) Add(prompt string) error {
 }
 
 // Ask sends a question to the Gemini chat client and expects a structured response.
-func (g *Gemini) Ask(question string, target any) error {
+func (g *Gemini) Ask(ctx context.Context, question string, target any) error {
 	askCfg := g.cloneConfig()
 	askCfg.ResponseMIMEType = "application/json"
 
-	chat, err := g.client.Chats.Create(g.ctx, g.model, askCfg, g.history)
+	chat, err := g.client.Chats.Create(ctx, g.model, askCfg, g.history)
 	if err != nil {
 		return errors.Newf("failed to create gemini chat session: %w", err)
 	}
 
-	resp, err := chat.Send(g.ctx, genai.NewPartFromText(question))
+	resp, err := chat.Send(ctx, genai.NewPartFromText(question))
 	if err != nil {
 		return errors.Newf("gemini send message failed: %w", err)
 	}

@@ -119,7 +119,7 @@ func AskAI(ctx context.Context, p *props.Props, fsys fs.FS, question string, log
 	logFn(fmt.Sprintf("Asking AI: %s", question), log.DebugLevel)
 
 	var resp AskResponse
-	if err := client.Ask(question, &resp); err != nil {
+	if err := client.Ask(ctx, question, &resp); err != nil {
 		return "", err
 	}
 
