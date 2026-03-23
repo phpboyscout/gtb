@@ -3,7 +3,6 @@ package grpc
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"net"
 
 	"github.com/cockroachdb/errors"
@@ -24,7 +23,7 @@ func NewServer(cfg config.Containable, opt ...grpc.ServerOption) (*grpc.Server, 
 }
 
 // Start returns a curried function suitable for use with the controls package.
-func Start(cfg config.Containable, logger *slog.Logger, srv *grpc.Server) controls.StartFunc {
+func Start(cfg config.Containable, logger logger.Logger, srv *grpc.Server) controls.StartFunc {
 	port := fmt.Sprintf(":%d", cfg.GetInt("server.port"))
 
 	return func(ctx context.Context) error {
@@ -46,7 +45,7 @@ func Start(cfg config.Containable, logger *slog.Logger, srv *grpc.Server) contro
 }
 
 // Stop returns a curried function suitable for use with the controls package.
-func Stop(logger *slog.Logger, srv *grpc.Server) controls.StopFunc {
+func Stop(logger logger.Logger, srv *grpc.Server) controls.StopFunc {
 	return func(_ context.Context) {
 		logger.Info("Stopping gRPC server")
 		srv.GracefulStop()
