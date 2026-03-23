@@ -12,6 +12,7 @@ import (
 	"github.com/njayp/ophis"
 
 	"github.com/phpboyscout/go-tool-base/pkg/cmd/docs"
+	"github.com/phpboyscout/go-tool-base/pkg/cmd/doctor"
 	"github.com/phpboyscout/go-tool-base/pkg/cmd/initialise"
 	"github.com/phpboyscout/go-tool-base/pkg/cmd/update"
 	"github.com/phpboyscout/go-tool-base/pkg/cmd/version"
@@ -397,6 +398,7 @@ func setupRootFlags(rootCmd *cobra.Command, props *p.Props, state *rootState) {
 	rootCmd.PersistentFlags().Bool("debug", false, "forces debug log output")
 
 	rootCmd.PersistentFlags().Bool("ci", false, "flag to indicate the tools is running in a CI environment")
+	rootCmd.PersistentFlags().String("output", "text", "output format (text, json)")
 }
 
 func registerFeatureCommands(rootCmd *cobra.Command, props *p.Props, mcpLogLevel *slog.LevelVar) {
@@ -422,6 +424,10 @@ func registerFeatureCommands(rootCmd *cobra.Command, props *p.Props, mcpLogLevel
 		if docsCmd := docs.NewCmdDocs(props); docsCmd != nil {
 			rootCmd.AddCommand(docsCmd)
 		}
+	}
+
+	if props.Tool.IsEnabled(p.DoctorCmd) {
+		rootCmd.AddCommand(doctor.NewCmdDoctor(props))
 	}
 }
 

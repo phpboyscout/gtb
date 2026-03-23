@@ -2,7 +2,7 @@
 title: "Operational Tooling Specification"
 description: "Add structured JSON output mode and a doctor/diagnose command for configuration validation and environment checks."
 date: 2026-03-21
-status: DRAFT
+status: IMPLEMENTED
 tags:
   - specification
   - cli

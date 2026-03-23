@@ -1,6 +1,8 @@
 package setup
 
 import (
+	"context"
+
 	"github.com/spf13/cobra"
 
 	"github.com/phpboyscout/go-tool-base/pkg/props"
@@ -15,17 +17,33 @@ type SubcommandProvider func(p *props.Props) []*cobra.Command
 // FeatureFlag is a function that registers flags on a cobra command.
 type FeatureFlag func(cmd *cobra.Command)
 
-// FeatureRegistry holds the registered initialisers, subcommands, and flags for features.
+// CheckResult represents the outcome of a single diagnostic check.
+type CheckResult struct {
+	Name    string `json:"name"`
+	Status  string `json:"status"`
+	Message string `json:"message"`
+	Details string `json:"details,omitempty"`
+}
+
+// CheckFunc is the signature for individual diagnostic checks.
+type CheckFunc func(ctx context.Context, props *props.Props) CheckResult
+
+// CheckProvider is a function that returns diagnostic checks for a feature.
+type CheckProvider func(p *props.Props) []CheckFunc
+
+// FeatureRegistry holds the registered initialisers, subcommands, flags, and checks for features.
 type FeatureRegistry struct {
 	initialisers map[props.FeatureCmd][]InitialiserProvider
 	subcommands  map[props.FeatureCmd][]SubcommandProvider
 	flags        map[props.FeatureCmd][]FeatureFlag
+	checks       map[props.FeatureCmd][]CheckProvider
 }
 
 var globalRegistry = &FeatureRegistry{
 	initialisers: make(map[props.FeatureCmd][]InitialiserProvider),
 	subcommands:  make(map[props.FeatureCmd][]SubcommandProvider),
 	flags:        make(map[props.FeatureCmd][]FeatureFlag),
+	checks:       make(map[props.FeatureCmd][]CheckProvider),
 }
 
 // Register adds initialisers, subcommands, and flags for a specific feature.
@@ -43,6 +61,13 @@ func Register(feature props.FeatureCmd, ips []InitialiserProvider, sps []Subcomm
 	}
 }
 
+// RegisterChecks adds diagnostic check providers for a specific feature.
+func RegisterChecks(feature props.FeatureCmd, cps []CheckProvider) {
+	if cps != nil {
+		globalRegistry.checks[feature] = append(globalRegistry.checks[feature], cps...)
+	}
+}
+
 // GetInitialisers returns all registered initialiser providers.
 func GetInitialisers() map[props.FeatureCmd][]InitialiserProvider {
 	return globalRegistry.initialisers
@@ -56,4 +81,9 @@ func GetSubcommands() map[props.FeatureCmd][]SubcommandProvider {
 // GetFeatureFlags returns all registered feature flag providers.
 func GetFeatureFlags() map[props.FeatureCmd][]FeatureFlag {
 	return globalRegistry.flags
+}
+
+// GetChecks returns all registered check providers.
+func GetChecks() map[props.FeatureCmd][]CheckProvider {
+	return globalRegistry.checks
 }

@@ -1,14 +1,17 @@
 package version
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/phpboyscout/go-tool-base/pkg/config"
 	"github.com/phpboyscout/go-tool-base/pkg/errorhandling"
+	"github.com/phpboyscout/go-tool-base/pkg/output"
 	p "github.com/phpboyscout/go-tool-base/pkg/props"
 	ver "github.com/phpboyscout/go-tool-base/pkg/version"
 
@@ -87,4 +90,77 @@ func TestNewCmdVersion(t *testing.T) {
 	cmd = NewCmdVersion(props)
 	err = cmd.Execute()
 	assert.NoError(t, err)
+}
+
+func TestPrintVersionText(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		info     *VersionInfo
+		contains []string
+		excludes []string
+	}{
+		{
+			name:     "full info current",
+			info:     &VersionInfo{Version: "v1.0.0", Commit: "abc123", Date: "2026-03-23", Latest: "v1.0.0", Current: true},
+			contains: []string{"Version: v1.0.0", "Build:   abc123", "Date:    2026-03-23"},
+			excludes: []string{"update available"},
+		},
+		{
+			name:     "outdated version",
+			info:     &VersionInfo{Version: "v0.9.0", Commit: "abc123", Date: "2026-03-23", Latest: "v1.0.0", Current: false},
+			contains: []string{"Version: v0.9.0", "Latest:  v1.0.0 (update available)"},
+		},
+		{
+			name:     "minimal info",
+			info:     &VersionInfo{Version: "v1.0.0", Current: true},
+			contains: []string{"Version: v1.0.0"},
+			excludes: []string{"Build:", "Date:"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var buf bytes.Buffer
+			printVersionText(&buf, tt.info)
+			text := buf.String()
+
+			for _, s := range tt.contains {
+				assert.Contains(t, text, s)
+			}
+
+			for _, s := range tt.excludes {
+				assert.NotContains(t, text, s)
+			}
+		})
+	}
+}
+
+func TestVersionInfo_JSONOutput(t *testing.T) {
+	t.Parallel()
+
+	info := &VersionInfo{
+		Version: "v1.0.0",
+		Commit:  "abc123",
+		Date:    "2026-03-23",
+		Latest:  "v1.1.0",
+		Current: false,
+	}
+
+	var buf bytes.Buffer
+	out := output.NewWriter(&buf, output.FormatJSON)
+
+	err := out.Write(info, func(_ io.Writer) {})
+	require.NoError(t, err)
+
+	var result VersionInfo
+	err = json.Unmarshal(buf.Bytes(), &result)
+	require.NoError(t, err)
+	assert.Equal(t, "v1.0.0", result.Version)
+	assert.Equal(t, "abc123", result.Commit)
+	assert.Equal(t, "v1.1.0", result.Latest)
+	assert.False(t, result.Current)
 }

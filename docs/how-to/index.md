@@ -36,3 +36,6 @@ Choosing an AI provider (Claude, OpenAI, Gemini) and securely configuring your e
 
 ### [Adding an Initialiser](add-initialiser.md)
 Learn how to create and register a custom Initialiser for your feature.
+
+### [Adding a Doctor Check](add-doctor-check.md)
+Register custom diagnostic checks so the `doctor` command validates your feature's health.
