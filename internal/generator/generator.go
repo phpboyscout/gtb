@@ -9,9 +9,9 @@ import (
 
 	"github.com/cockroachdb/errors"
 
-	"github.com/phpboyscout/gtb/pkg/chat"
-	"github.com/phpboyscout/gtb/pkg/props"
-	"github.com/phpboyscout/gtb/pkg/version"
+	"github.com/phpboyscout/go-tool-base/pkg/chat"
+	"github.com/phpboyscout/go-tool-base/pkg/props"
+	"github.com/phpboyscout/go-tool-base/pkg/version"
 )
 
 const (
@@ -165,7 +165,7 @@ func (g *Generator) checkManifestVersion(m *Manifest) error {
 	}
 
 	if version.CompareVersions(cliVer, manifestVer) < 0 {
-		return errors.Newf("current gtb version (%s) is lower than the version specified in the manifest (%s). Please update gtb: go install github.com/phpboyscout/gtb@latest", cliVer, manifestVer)
+		return errors.Newf("current gtb version (%s) is lower than the version specified in the manifest (%s). Please update gtb: go install github.com/phpboyscout/go-tool-base@latest", cliVer, manifestVer)
 	}
 
 	if version.CompareVersions(cliVer, manifestVer) > 0 {

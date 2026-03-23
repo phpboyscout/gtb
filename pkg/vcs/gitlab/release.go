@@ -8,9 +8,9 @@ import (
 	"github.com/cockroachdb/errors"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 
-	"github.com/phpboyscout/gtb/pkg/config"
-	"github.com/phpboyscout/gtb/pkg/vcs"
-	"github.com/phpboyscout/gtb/pkg/vcs/release"
+	"github.com/phpboyscout/go-tool-base/pkg/config"
+	"github.com/phpboyscout/go-tool-base/pkg/vcs"
+	"github.com/phpboyscout/go-tool-base/pkg/vcs/release"
 )
 
 // gitlabRelease implements release.Release.

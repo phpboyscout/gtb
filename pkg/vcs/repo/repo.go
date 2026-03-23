@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/phpboyscout/gtb/pkg/props"
-	githubvcs "github.com/phpboyscout/gtb/pkg/vcs/github"
+	"github.com/phpboyscout/go-tool-base/pkg/props"
+	githubvcs "github.com/phpboyscout/go-tool-base/pkg/vcs/github"
 
 	"github.com/charmbracelet/huh"
 	"github.com/cockroachdb/errors"

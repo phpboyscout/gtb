@@ -21,7 +21,7 @@ Whether you're documenting a complex command hierarchy or a critical library pac
 Documentation builds are handled by a portable Go generator. When called from a nested package (like `internal/cmd/root`), use the following pattern:
 
 ```go
-//go:generate go run github.com/phpboyscout/gtb/cmd/docs --project-root ../../.. --target-dir pkg/cmd/root/assets
+//go:generate go run github.com/phpboyscout/go-tool-base/cmd/docs --project-root ../../.. --target-dir pkg/cmd/root/assets
 ```
 
 This tool:

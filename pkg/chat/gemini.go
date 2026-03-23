@@ -9,7 +9,7 @@ import (
 	"github.com/invopop/jsonschema"
 	"google.golang.org/genai"
 
-	"github.com/phpboyscout/gtb/pkg/props"
+	"github.com/phpboyscout/go-tool-base/pkg/props"
 )
 
 func init() {

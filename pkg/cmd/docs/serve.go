@@ -8,9 +8,9 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/spf13/cobra"
 
-	"github.com/phpboyscout/gtb/pkg/props"
+	"github.com/phpboyscout/go-tool-base/pkg/props"
 
-	docslib "github.com/phpboyscout/gtb/pkg/docs"
+	docslib "github.com/phpboyscout/go-tool-base/pkg/docs"
 )
 
 const (

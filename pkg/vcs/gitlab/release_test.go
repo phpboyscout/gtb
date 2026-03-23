@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 
-	mockConfig "github.com/phpboyscout/gtb/mocks/pkg/config"
+	mockConfig "github.com/phpboyscout/go-tool-base/mocks/pkg/config"
 )
 
 func TestGitlabRelease_Accessors(t *testing.T) {

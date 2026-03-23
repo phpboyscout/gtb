@@ -5,10 +5,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/phpboyscout/gtb/pkg/logger"
-	"github.com/phpboyscout/gtb/pkg/config"
-	"github.com/phpboyscout/gtb/pkg/props"
-	"github.com/phpboyscout/gtb/pkg/version"
+	"github.com/phpboyscout/go-tool-base/pkg/logger"
+	"github.com/phpboyscout/go-tool-base/pkg/config"
+	"github.com/phpboyscout/go-tool-base/pkg/props"
+	"github.com/phpboyscout/go-tool-base/pkg/version"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -36,7 +36,7 @@ func TestAddCommand_Lifecycle(t *testing.T) {
 	_ = fs.MkdirAll(root+"/pkg/cmd/root", 0755)
 	rootCmdContent := `package root
 import (
-	"github.com/phpboyscout/gtb/pkg/props"
+	"github.com/phpboyscout/go-tool-base/pkg/props"
 	"github.com/spf13/cobra"
 )
 func NewCmdRoot(p *props.Props) *cobra.Command {
@@ -130,7 +130,7 @@ func NewCmdScanned(p interface{}) *cobra.Command {
 	_ = fs.MkdirAll(root+"/pkg/cmd/root", 0755)
 	rootContent := `package root
 import (
-	"github.com/phpboyscout/gtb/pkg/props"
+	"github.com/phpboyscout/go-tool-base/pkg/props"
 	"github.com/spf13/cobra"
 	"test-mod/pkg/cmd/scanned"
 )

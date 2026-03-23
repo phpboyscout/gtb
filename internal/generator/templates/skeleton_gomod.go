@@ -6,7 +6,7 @@ go {{ .GoVersion }}
 
 
 tool (
-	github.com/phpboyscout/gtb/cmd/gtb
+	github.com/phpboyscout/go-tool-base/cmd/gtb
 	github.com/golangci/golangci-lint/cmd/golangci-lint
 	github.com/vektra/mockery/v3
 )

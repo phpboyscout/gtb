@@ -5,7 +5,7 @@
 package release
 
 import (
-	"github.com/phpboyscout/gtb/pkg/vcs/release"
+	"github.com/phpboyscout/go-tool-base/pkg/vcs/release"
 	mock "github.com/stretchr/testify/mock"
 )
 

@@ -5,14 +5,14 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/phpboyscout/gtb/pkg/logger"
-	"github.com/phpboyscout/gtb/pkg/props"
-	"github.com/phpboyscout/gtb/pkg/version"
+	"github.com/phpboyscout/go-tool-base/pkg/logger"
+	"github.com/phpboyscout/go-tool-base/pkg/props"
+	"github.com/phpboyscout/go-tool-base/pkg/version"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/phpboyscout/gtb/internal/generator"
+	"github.com/phpboyscout/go-tool-base/internal/generator"
 )
 
 func TestCommandRun(t *testing.T) {
@@ -42,7 +42,7 @@ func TestCommandRun(t *testing.T) {
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/phpboyscout/gtb/pkg/props"
+	"github.com/phpboyscout/go-tool-base/pkg/props"
 )
 
 func NewCmdRoot(props *props.Props) *cobra.Command {
@@ -170,10 +170,10 @@ commands:
 
 	// Mock parent files
 	fs.MkdirAll(filepath.Join(projectRoot, "pkg/cmd/cat"), 0755)
-	afero.WriteFile(fs, filepath.Join(projectRoot, "pkg/cmd/cat/cmd.go"), []byte("package cat\nimport \"github.com/spf13/cobra\"\nimport \"github.com/phpboyscout/gtb/pkg/props\"\nfunc NewCmdCat(props *props.Props) *cobra.Command {\n\tcmd := &cobra.Command{Use: \"cat\"}\n\treturn cmd\n}\n"), 0644)
+	afero.WriteFile(fs, filepath.Join(projectRoot, "pkg/cmd/cat/cmd.go"), []byte("package cat\nimport \"github.com/spf13/cobra\"\nimport \"github.com/phpboyscout/go-tool-base/pkg/props\"\nfunc NewCmdCat(props *props.Props) *cobra.Command {\n\tcmd := &cobra.Command{Use: \"cat\"}\n\treturn cmd\n}\n"), 0644)
 
 	fs.MkdirAll(filepath.Join(projectRoot, "pkg/cmd/dog/cat"), 0755)
-	afero.WriteFile(fs, filepath.Join(projectRoot, "pkg/cmd/dog/cat/cmd.go"), []byte("package cat\nimport \"github.com/spf13/cobra\"\nimport \"github.com/phpboyscout/gtb/pkg/props\"\nfunc NewCmdCat(props *props.Props) *cobra.Command {\n\tcmd := &cobra.Command{Use: \"cat\"}\n\treturn cmd\n}\n"), 0644)
+	afero.WriteFile(fs, filepath.Join(projectRoot, "pkg/cmd/dog/cat/cmd.go"), []byte("package cat\nimport \"github.com/spf13/cobra\"\nimport \"github.com/phpboyscout/go-tool-base/pkg/props\"\nfunc NewCmdCat(props *props.Props) *cobra.Command {\n\tcmd := &cobra.Command{Use: \"cat\"}\n\treturn cmd\n}\n"), 0644)
 
 	// Target the ROOT cat
 	opts := CommandOptions{
@@ -231,7 +231,7 @@ func TestCommandRun_SubcommandNoAssets(t *testing.T) {
 	parentContent := `package root
 import (
 	"github.com/spf13/cobra"
-	"github.com/phpboyscout/gtb/pkg/props"
+	"github.com/phpboyscout/go-tool-base/pkg/props"
 )
 func NewCmdRoot(props *props.Props) *cobra.Command {
 	return &cobra.Command{Use: "root"}

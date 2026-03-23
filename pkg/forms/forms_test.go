@@ -3,7 +3,7 @@ package forms_test
 import (
 	"testing"
 
-	"github.com/phpboyscout/gtb/pkg/forms"
+	"github.com/phpboyscout/go-tool-base/pkg/forms"
 
 	"github.com/charmbracelet/huh"
 	"github.com/cockroachdb/errors"

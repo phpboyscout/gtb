@@ -9,7 +9,7 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/spf13/afero"
 
-	"github.com/phpboyscout/gtb/internal/generator/templates"
+	"github.com/phpboyscout/go-tool-base/internal/generator/templates"
 )
 
 // ensureHookStubs appends any missing hook function stubs to an existing main.go.
@@ -61,7 +61,7 @@ func (g *Generator) ensureHookStubs(ctx context.Context, mainPath string, data t
 			enabled:  data.WithInitializer,
 			funcName: "Init" + data.PascalName,
 			requiredImports: []string{
-				"github.com/phpboyscout/gtb/pkg/config",
+				"github.com/phpboyscout/go-tool-base/pkg/config",
 			},
 			stub: func() string {
 				return fmt.Sprintf(

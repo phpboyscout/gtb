@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/phpboyscout/gtb/pkg/logger"
-	"github.com/phpboyscout/gtb/pkg/props"
+	"github.com/phpboyscout/go-tool-base/pkg/logger"
+	"github.com/phpboyscout/go-tool-base/pkg/props"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

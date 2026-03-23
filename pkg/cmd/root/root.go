@@ -11,20 +11,20 @@ import (
 
 	"github.com/njayp/ophis"
 
-	"github.com/phpboyscout/gtb/pkg/cmd/docs"
-	"github.com/phpboyscout/gtb/pkg/cmd/initialise"
-	"github.com/phpboyscout/gtb/pkg/cmd/update"
-	"github.com/phpboyscout/gtb/pkg/cmd/version"
-	"github.com/phpboyscout/gtb/pkg/config"
-	"github.com/phpboyscout/gtb/pkg/errorhandling"
-	p "github.com/phpboyscout/gtb/pkg/props"
-	"github.com/phpboyscout/gtb/pkg/setup"
+	"github.com/phpboyscout/go-tool-base/pkg/cmd/docs"
+	"github.com/phpboyscout/go-tool-base/pkg/cmd/initialise"
+	"github.com/phpboyscout/go-tool-base/pkg/cmd/update"
+	"github.com/phpboyscout/go-tool-base/pkg/cmd/version"
+	"github.com/phpboyscout/go-tool-base/pkg/config"
+	"github.com/phpboyscout/go-tool-base/pkg/errorhandling"
+	p "github.com/phpboyscout/go-tool-base/pkg/props"
+	"github.com/phpboyscout/go-tool-base/pkg/setup"
 
 	"github.com/charmbracelet/huh"
 	"github.com/cockroachdb/errors"
 	"github.com/spf13/cobra"
 
-	"github.com/phpboyscout/gtb/pkg/logger"
+	"github.com/phpboyscout/go-tool-base/pkg/logger"
 )
 
 // ErrUpdateComplete is returned by PersistentPreRunE when a self-update

@@ -12,7 +12,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
 
-	"github.com/phpboyscout/gtb/pkg/logger"
+	"github.com/phpboyscout/go-tool-base/pkg/logger"
 )
 
 type Containable interface {

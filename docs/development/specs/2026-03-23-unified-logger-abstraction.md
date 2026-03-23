@@ -486,7 +486,7 @@ logger := log.NewWithOptions(os.Stderr, log.Options{
 })
 
 // After:
-import "github.com/phpboyscout/gtb/pkg/logger"
+import "github.com/phpboyscout/go-tool-base/pkg/logger"
 
 l := logger.NewCharm(os.Stderr,
     logger.WithTimestamp(true),
@@ -510,11 +510,11 @@ jen.Id("logger").Op(":=").Qual("github.com/charmbracelet/log", "NewWithOptions")
 ),
 
 // After:
-jen.Id("logger").Op(":=").Qual("github.com/phpboyscout/gtb/pkg/logger", "NewCharm").Call(
+jen.Id("logger").Op(":=").Qual("github.com/phpboyscout/go-tool-base/pkg/logger", "NewCharm").Call(
     jen.Qual("os", "Stderr"),
-    jen.Qual("github.com/phpboyscout/gtb/pkg/logger", "WithTimestamp").Call(jen.True()),
-    jen.Qual("github.com/phpboyscout/gtb/pkg/logger", "WithLevel").Call(
-        jen.Qual("github.com/phpboyscout/gtb/pkg/logger", "InfoLevel"),
+    jen.Qual("github.com/phpboyscout/go-tool-base/pkg/logger", "WithTimestamp").Call(jen.True()),
+    jen.Qual("github.com/phpboyscout/go-tool-base/pkg/logger", "WithLevel").Call(
+        jen.Qual("github.com/phpboyscout/go-tool-base/pkg/logger", "InfoLevel"),
     ),
 ),
 ```
@@ -526,7 +526,7 @@ The `isRedundantImport` function in `command.go` filters AI-hallucinated imports
 if imp == "github.com/phpboyscout/logger" || imp == "github.com/charmbracelet/log" {
 
 // After:
-if imp == "github.com/phpboyscout/logger" || imp == "github.com/charmbracelet/log" || imp == "github.com/phpboyscout/gtb/pkg/logger" {
+if imp == "github.com/phpboyscout/logger" || imp == "github.com/charmbracelet/log" || imp == "github.com/phpboyscout/go-tool-base/pkg/logger" {
 ```
 
 ### Internal Generator Package

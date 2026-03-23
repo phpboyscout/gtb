@@ -7,7 +7,7 @@ package chat
 import (
 	"context"
 
-	"github.com/phpboyscout/gtb/pkg/chat"
+	"github.com/phpboyscout/go-tool-base/pkg/chat"
 	mock "github.com/stretchr/testify/mock"
 )
 

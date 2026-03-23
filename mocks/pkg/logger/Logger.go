@@ -7,7 +7,7 @@ package logger
 import (
 	"log/slog"
 
-	"github.com/phpboyscout/gtb/pkg/logger"
+	"github.com/phpboyscout/go-tool-base/pkg/logger"
 	mock "github.com/stretchr/testify/mock"
 )
 

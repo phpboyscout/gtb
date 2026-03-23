@@ -34,8 +34,8 @@ package main
 
 import (
     "embed"
-    "github.com/phpboyscout/gtb/pkg/cmd/root"
-    "github.com/phpboyscout/gtb/pkg/props"
+    "github.com/phpboyscout/go-tool-base/pkg/cmd/root"
+    "github.com/phpboyscout/go-tool-base/pkg/props"
 )
 
 //go:embed assets/*

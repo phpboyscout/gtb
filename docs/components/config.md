@@ -509,7 +509,7 @@ The GTB library includes auto-generated mocks using [mockery](https://github.com
 import (
     "testing"
 
-    "github.com/phpboyscout/gtb/mocks/pkg/config"
+    "github.com/phpboyscout/go-tool-base/mocks/pkg/config"
     "github.com/stretchr/testify/assert"
 )
 
@@ -585,7 +585,7 @@ import (
     "testing"
     "time"
 
-    "github.com/phpboyscout/gtb/mocks/pkg/config"
+    "github.com/phpboyscout/go-tool-base/mocks/pkg/config"
     "github.com/stretchr/testify/assert"
 )
 

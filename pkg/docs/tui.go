@@ -12,7 +12,7 @@ import (
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/phpboyscout/gtb/pkg/logger"
+	"github.com/phpboyscout/go-tool-base/pkg/logger"
 )
 
 // Styles.

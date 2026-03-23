@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/phpboyscout/gtb/pkg/controls"
-	"github.com/phpboyscout/gtb/pkg/logger"
+	"github.com/phpboyscout/go-tool-base/pkg/controls"
+	"github.com/phpboyscout/go-tool-base/pkg/logger"
 	mock "github.com/stretchr/testify/mock"
 )
 

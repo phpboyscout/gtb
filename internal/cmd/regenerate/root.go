@@ -3,7 +3,7 @@ package regenerate
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/phpboyscout/gtb/pkg/props"
+	"github.com/phpboyscout/go-tool-base/pkg/props"
 )
 
 func NewCmdRegenerate(p *props.Props) *cobra.Command {

@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/phpboyscout/gtb/internal/cmd/root"
-	"github.com/phpboyscout/gtb/internal/version"
-	pkgRoot "github.com/phpboyscout/gtb/pkg/cmd/root"
+	"github.com/phpboyscout/go-tool-base/internal/cmd/root"
+	"github.com/phpboyscout/go-tool-base/internal/version"
+	pkgRoot "github.com/phpboyscout/go-tool-base/pkg/cmd/root"
 )
 
 func main() {

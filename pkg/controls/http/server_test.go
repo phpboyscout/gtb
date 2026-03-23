@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	mockConfig "github.com/phpboyscout/gtb/mocks/pkg/config"
-	"github.com/phpboyscout/gtb/pkg/controls"
+	mockConfig "github.com/phpboyscout/go-tool-base/mocks/pkg/config"
+	"github.com/phpboyscout/go-tool-base/pkg/controls"
 )
 
 func testLogger() *slog.Logger {

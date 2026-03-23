@@ -5,8 +5,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/phpboyscout/gtb/internal/generator"
-	"github.com/phpboyscout/gtb/pkg/props"
+	"github.com/phpboyscout/go-tool-base/internal/generator"
+	"github.com/phpboyscout/go-tool-base/pkg/props"
 )
 
 type ManifestOptions struct {

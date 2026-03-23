@@ -20,8 +20,8 @@ Create a new package or add a file to your feature package that implements `setu
 package myfeature
 
 import (
-	"github.com/phpboyscout/gtb/pkg/config"
-    "github.com/phpboyscout/gtb/pkg/props"
+	"github.com/phpboyscout/go-tool-base/pkg/config"
+    "github.com/phpboyscout/go-tool-base/pkg/props"
 )
 
 type MyInitialiser struct {
@@ -62,8 +62,8 @@ Use the `setup.Register` function in your package's `init()` block. This ensures
 package myfeature
 
 import (
-    "github.com/phpboyscout/gtb/pkg/props"
-    "github.com/phpboyscout/gtb/pkg/setup"
+    "github.com/phpboyscout/go-tool-base/pkg/props"
+    "github.com/phpboyscout/go-tool-base/pkg/setup"
     "github.com/spf13/cobra"
 )
 
@@ -103,7 +103,7 @@ package command
 
 import (
     // Blank import triggers the setup package's init() registration
-	_ "github.com/phpboyscout/gtb/pkg/setup/myfeature"
+	_ "github.com/phpboyscout/go-tool-base/pkg/setup/myfeature"
 )
 
 func NewCmdMyFeature(p *props.Props) *cobra.Command {

@@ -3,7 +3,7 @@ package vcs
 import (
 	"os"
 
-	"github.com/phpboyscout/gtb/pkg/config"
+	"github.com/phpboyscout/go-tool-base/pkg/config"
 )
 
 // ResolveToken resolves an authentication token from a config subtree.

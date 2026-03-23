@@ -41,7 +41,7 @@ The `Config` struct accepts the following fields:
 | `MaxTokens` | `int` | Maximum tokens per response. Zero uses the provider default (OpenAI: 4096, Claude: 8192, Gemini: 8192). |
 
 ```go
-import "github.com/phpboyscout/gtb/pkg/chat"
+import "github.com/phpboyscout/go-tool-base/pkg/chat"
 
 cfg := chat.Config{
     Provider:     chat.ProviderOpenAI, // or ProviderClaude, ProviderGemini, ProviderClaudeLocal, ProviderOpenAICompatible
@@ -124,7 +124,7 @@ import (
     "encoding/json"
     "os"
 
-    "github.com/phpboyscout/gtb/pkg/chat"
+    "github.com/phpboyscout/go-tool-base/pkg/chat"
     "github.com/cockroachdb/errors"
 )
 

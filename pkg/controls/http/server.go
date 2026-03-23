@@ -10,8 +10,8 @@ import (
 
 	"github.com/cockroachdb/errors"
 
-	"github.com/phpboyscout/gtb/pkg/config"
-	"github.com/phpboyscout/gtb/pkg/controls"
+	"github.com/phpboyscout/go-tool-base/pkg/config"
+	"github.com/phpboyscout/go-tool-base/pkg/controls"
 )
 
 var (

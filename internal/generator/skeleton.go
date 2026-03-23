@@ -18,7 +18,7 @@ import (
 	"github.com/spf13/afero"
 	"gopkg.in/yaml.v3"
 
-	"github.com/phpboyscout/gtb/internal/generator/templates"
+	"github.com/phpboyscout/go-tool-base/internal/generator/templates"
 )
 
 //go:embed assets/skeleton/*

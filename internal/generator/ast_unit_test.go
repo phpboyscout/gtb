@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/dave/dst"
-	"github.com/phpboyscout/gtb/pkg/props"
+	"github.com/phpboyscout/go-tool-base/pkg/props"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 )

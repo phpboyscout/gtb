@@ -3,9 +3,9 @@ package update
 import (
 	"testing"
 
-	"github.com/phpboyscout/gtb/pkg/errorhandling"
-	"github.com/phpboyscout/gtb/pkg/logger"
-	p "github.com/phpboyscout/gtb/pkg/props"
+	"github.com/phpboyscout/go-tool-base/pkg/errorhandling"
+	"github.com/phpboyscout/go-tool-base/pkg/logger"
+	p "github.com/phpboyscout/go-tool-base/pkg/props"
 
 	"github.com/stretchr/testify/assert"
 )

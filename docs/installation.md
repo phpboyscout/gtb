@@ -28,7 +28,7 @@ The recommended way to install the `gtb` CLI is using our pre-built release bina
 ### Linux/macOS
 
 ```bash
-curl -sSL "https://github.com/phpboyscout/gtb/raw/main/install.sh" | bash
+curl -sSL "https://github.com/phpboyscout/go-tool-base/raw/main/install.sh" | bash
 ```
 
 !!! note
@@ -37,7 +37,7 @@ curl -sSL "https://github.com/phpboyscout/gtb/raw/main/install.sh" | bash
 ### Windows (PowerShell)
 
 ```powershell
-irm "https://github.com/phpboyscout/gtb/raw/main/install.ps1" | iex
+irm "https://github.com/phpboyscout/go-tool-base/raw/main/install.ps1" | iex
 ```
 
 ### From Source (go install)
@@ -45,7 +45,7 @@ irm "https://github.com/phpboyscout/gtb/raw/main/install.ps1" | iex
 While less recommended because gitignored assets (like the TUI documentation) will be missing, you can still install from source:
 
 ```bash
-go install github.com/phpboyscout/gtb@latest
+go install github.com/phpboyscout/go-tool-base@latest
 ```
 
 Ensuring your `$GOPATH/bin` is in your `$PATH`, you can then use the `gtb` command directly.
@@ -58,7 +58,7 @@ Add GTB to your project using Go modules:
 
 ```bash
 go mod init your-tool-name
-go get github.com/phpboyscout/gtb
+go get github.com/phpboyscout/go-tool-base
 ```
 
 ### Method 2: Direct Import
@@ -66,7 +66,7 @@ go get github.com/phpboyscout/gtb
 Add the import to your Go files and run `go mod tidy`:
 
 ```go
-import "github.com/phpboyscout/gtb/pkg/cmd/root"
+import "github.com/phpboyscout/go-tool-base/pkg/cmd/root"
 ```
 
 Then run:
@@ -105,10 +105,10 @@ import (
     "embed"
     "os"
 
-    "github.com/phpboyscout/gtb/pkg/cmd/root"
-    "github.com/phpboyscout/gtb/pkg/logger"
-    "github.com/phpboyscout/gtb/pkg/props"
-    "github.com/phpboyscout/gtb/pkg/version"
+    "github.com/phpboyscout/go-tool-base/pkg/cmd/root"
+    "github.com/phpboyscout/go-tool-base/pkg/logger"
+    "github.com/phpboyscout/go-tool-base/pkg/props"
+    "github.com/phpboyscout/go-tool-base/pkg/version"
     "github.com/spf13/afero"
 )
 

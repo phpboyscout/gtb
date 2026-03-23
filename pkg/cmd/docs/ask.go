@@ -10,9 +10,9 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/spf13/cobra"
 
-	docslib "github.com/phpboyscout/gtb/pkg/docs"
-	"github.com/phpboyscout/gtb/pkg/logger"
-	"github.com/phpboyscout/gtb/pkg/props"
+	docslib "github.com/phpboyscout/go-tool-base/pkg/docs"
+	"github.com/phpboyscout/go-tool-base/pkg/logger"
+	"github.com/phpboyscout/go-tool-base/pkg/props"
 )
 
 func NewCmdDocsAsk(p *props.Props) *cobra.Command {

@@ -3,10 +3,10 @@ package props
 import (
 	"github.com/spf13/afero"
 
-	"github.com/phpboyscout/gtb/pkg/config"
-	"github.com/phpboyscout/gtb/pkg/errorhandling"
-	"github.com/phpboyscout/gtb/pkg/logger"
-	"github.com/phpboyscout/gtb/pkg/version"
+	"github.com/phpboyscout/go-tool-base/pkg/config"
+	"github.com/phpboyscout/go-tool-base/pkg/errorhandling"
+	"github.com/phpboyscout/go-tool-base/pkg/logger"
+	"github.com/phpboyscout/go-tool-base/pkg/version"
 )
 
 // Props is the primary dependency injection container for GTB applications.

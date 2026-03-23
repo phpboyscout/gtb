@@ -10,9 +10,9 @@ import (
 	"github.com/openai/openai-go/v3/option"
 	"github.com/tiktoken-go/tokenizer"
 
-	"github.com/phpboyscout/gtb/pkg/config"
-	"github.com/phpboyscout/gtb/pkg/logger"
-	"github.com/phpboyscout/gtb/pkg/props"
+	"github.com/phpboyscout/go-tool-base/pkg/config"
+	"github.com/phpboyscout/go-tool-base/pkg/logger"
+	"github.com/phpboyscout/go-tool-base/pkg/props"
 )
 
 func init() {

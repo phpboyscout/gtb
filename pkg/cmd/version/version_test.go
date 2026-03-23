@@ -7,13 +7,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/phpboyscout/gtb/pkg/config"
-	"github.com/phpboyscout/gtb/pkg/errorhandling"
-	p "github.com/phpboyscout/gtb/pkg/props"
-	ver "github.com/phpboyscout/gtb/pkg/version"
+	"github.com/phpboyscout/go-tool-base/pkg/config"
+	"github.com/phpboyscout/go-tool-base/pkg/errorhandling"
+	p "github.com/phpboyscout/go-tool-base/pkg/props"
+	ver "github.com/phpboyscout/go-tool-base/pkg/version"
 
 	"github.com/google/go-github/v80/github"
-	"github.com/phpboyscout/gtb/pkg/logger"
+	"github.com/phpboyscout/go-tool-base/pkg/logger"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

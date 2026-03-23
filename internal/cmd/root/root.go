@@ -7,15 +7,15 @@ import (
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 
-	"github.com/phpboyscout/gtb/pkg/cmd/root"
-	"github.com/phpboyscout/gtb/pkg/errorhandling"
-	"github.com/phpboyscout/gtb/pkg/logger"
-	"github.com/phpboyscout/gtb/pkg/props"
-	ver "github.com/phpboyscout/gtb/pkg/version"
+	"github.com/phpboyscout/go-tool-base/pkg/cmd/root"
+	"github.com/phpboyscout/go-tool-base/pkg/errorhandling"
+	"github.com/phpboyscout/go-tool-base/pkg/logger"
+	"github.com/phpboyscout/go-tool-base/pkg/props"
+	ver "github.com/phpboyscout/go-tool-base/pkg/version"
 
-	"github.com/phpboyscout/gtb/internal/cmd/generate"
-	"github.com/phpboyscout/gtb/internal/cmd/regenerate"
-	"github.com/phpboyscout/gtb/internal/cmd/remove"
+	"github.com/phpboyscout/go-tool-base/internal/cmd/generate"
+	"github.com/phpboyscout/go-tool-base/internal/cmd/regenerate"
+	"github.com/phpboyscout/go-tool-base/internal/cmd/remove"
 )
 
 //go:embed all:assets

@@ -16,8 +16,8 @@ Use `NewRepo` and `OpenInMemory` to clone a repository into RAM using `memfs`.
 
 ```go
 import (
-    "github.com/phpboyscout/gtb/pkg/props"
-    "github.com/phpboyscout/gtb/pkg/vcs"
+    "github.com/phpboyscout/go-tool-base/pkg/props"
+    "github.com/phpboyscout/go-tool-base/pkg/vcs"
 )
 
 func analyzeRepo(p *props.Props, url string) error {

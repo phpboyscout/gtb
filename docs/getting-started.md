@@ -26,7 +26,7 @@ This is the recommended path for most users. Our generator handles the boilerpla
 ### 1. Install Global Generator
 Ensure you have the `gtb` CLI installed:
 ```bash
-go install github.com/phpboyscout/gtb/pkg/cmd/gtb@latest
+go install github.com/phpboyscout/go-tool-base/pkg/cmd/gtb@latest
 ```
 
 ### 2. Scaffold Your Project
@@ -69,10 +69,10 @@ import (
     "os"
     "time"
 
-    "github.com/phpboyscout/gtb/pkg/cmd/root"
-    "github.com/phpboyscout/gtb/pkg/logger"
-    "github.com/phpboyscout/gtb/pkg/props"
-    "github.com/phpboyscout/gtb/pkg/version"
+    "github.com/phpboyscout/go-tool-base/pkg/cmd/root"
+    "github.com/phpboyscout/go-tool-base/pkg/logger"
+    "github.com/phpboyscout/go-tool-base/pkg/props"
+    "github.com/phpboyscout/go-tool-base/pkg/version"
     "github.com/spf13/afero"
 )
 

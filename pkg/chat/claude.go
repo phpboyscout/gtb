@@ -10,7 +10,7 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/invopop/jsonschema"
 
-	"github.com/phpboyscout/gtb/pkg/props"
+	"github.com/phpboyscout/go-tool-base/pkg/props"
 )
 
 func init() {

@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/afero"
 	"github.com/spf13/viper"
 
-	"github.com/phpboyscout/gtb/pkg/logger"
+	"github.com/phpboyscout/go-tool-base/pkg/logger"
 )
 
 func initContainer(l logger.Logger, fs afero.Fs) *Container {

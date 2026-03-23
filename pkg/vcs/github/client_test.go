@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/phpboyscout/gtb/pkg/logger"
+	"github.com/phpboyscout/go-tool-base/pkg/logger"
 	"github.com/google/go-github/v80/github"
-	"github.com/phpboyscout/gtb/pkg/config"
+	"github.com/phpboyscout/go-tool-base/pkg/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

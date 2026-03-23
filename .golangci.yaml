@@ -78,9 +78,9 @@ formatters:
   settings:
     goimports:
       local-prefixes:
-        - github.com/phpboyscout/gtb
+        - github.com/phpboyscout/go-tool-base
     gofumpt:
-      module-path: github.com/phpboyscout/gtb
+      module-path: github.com/phpboyscout/go-tool-base
       extra-rules: true
   exclusions:
     generated: lax

@@ -5,15 +5,15 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/phpboyscout/gtb/pkg/chat"
-	"github.com/phpboyscout/gtb/pkg/logger"
+	"github.com/phpboyscout/go-tool-base/pkg/chat"
+	"github.com/phpboyscout/go-tool-base/pkg/logger"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/phpboyscout/gtb/pkg/config"
-	"github.com/phpboyscout/gtb/pkg/props"
+	"github.com/phpboyscout/go-tool-base/pkg/config"
+	"github.com/phpboyscout/go-tool-base/pkg/props"
 )
 
 // MockChatClient implements chat.ChatClient for testing.

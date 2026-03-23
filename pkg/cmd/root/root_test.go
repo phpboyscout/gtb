@@ -15,10 +15,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	configMocks "github.com/phpboyscout/gtb/mocks/pkg/config"
-	"github.com/phpboyscout/gtb/pkg/config"
-	"github.com/phpboyscout/gtb/pkg/logger"
-	p "github.com/phpboyscout/gtb/pkg/props"
+	configMocks "github.com/phpboyscout/go-tool-base/mocks/pkg/config"
+	"github.com/phpboyscout/go-tool-base/pkg/config"
+	"github.com/phpboyscout/go-tool-base/pkg/logger"
+	p "github.com/phpboyscout/go-tool-base/pkg/props"
 )
 
 // root_test.go provides comprehensive unit tests for the extracted functions in root.go

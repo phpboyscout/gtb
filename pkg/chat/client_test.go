@@ -5,9 +5,9 @@ import (
 	"os/exec"
 	"testing"
 
-	"github.com/phpboyscout/gtb/pkg/config"
-	"github.com/phpboyscout/gtb/pkg/logger"
-	"github.com/phpboyscout/gtb/pkg/props"
+	"github.com/phpboyscout/go-tool-base/pkg/config"
+	"github.com/phpboyscout/go-tool-base/pkg/logger"
+	"github.com/phpboyscout/go-tool-base/pkg/props"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

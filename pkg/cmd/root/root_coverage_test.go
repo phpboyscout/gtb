@@ -8,11 +8,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/phpboyscout/gtb/pkg/config"
-	"github.com/phpboyscout/gtb/pkg/errorhandling"
-	"github.com/phpboyscout/gtb/pkg/logger"
-	p "github.com/phpboyscout/gtb/pkg/props"
-	ver "github.com/phpboyscout/gtb/pkg/version"
+	"github.com/phpboyscout/go-tool-base/pkg/config"
+	"github.com/phpboyscout/go-tool-base/pkg/errorhandling"
+	"github.com/phpboyscout/go-tool-base/pkg/logger"
+	p "github.com/phpboyscout/go-tool-base/pkg/props"
+	ver "github.com/phpboyscout/go-tool-base/pkg/version"
 
 	"github.com/charmbracelet/huh"
 	"github.com/google/go-github/v80/github"

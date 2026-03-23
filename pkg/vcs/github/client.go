@@ -10,8 +10,8 @@ import (
 	"github.com/google/go-github/v80/github"
 	"github.com/spf13/afero"
 
-	"github.com/phpboyscout/gtb/pkg/config"
-	"github.com/phpboyscout/gtb/pkg/vcs"
+	"github.com/phpboyscout/go-tool-base/pkg/config"
+	"github.com/phpboyscout/go-tool-base/pkg/vcs"
 )
 
 const (

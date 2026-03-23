@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/phpboyscout/gtb/internal/generator/templates"
-	"github.com/phpboyscout/gtb/pkg/chat"
-	"github.com/phpboyscout/gtb/pkg/props"
+	"github.com/phpboyscout/go-tool-base/internal/generator/templates"
+	"github.com/phpboyscout/go-tool-base/pkg/chat"
+	"github.com/phpboyscout/go-tool-base/pkg/props"
 )
 
 // LegacyVerifier implements the original 5-retry loop logic.

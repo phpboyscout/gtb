@@ -296,7 +296,7 @@ package greet
 
 import (
     "context"
-    "github.com/phpboyscout/gtb/pkg/props"
+    "github.com/phpboyscout/go-tool-base/pkg/props"
 )
 
 func RunGreet(ctx context.Context, props *props.Props, opts *greetOptions, args []string) error {

@@ -33,9 +33,9 @@ package main
 import (
     "os"
 
-    "github.com/phpboyscout/gtb/pkg/logger"
-    "github.com/phpboyscout/gtb/pkg/setup"
-    "github.com/phpboyscout/gtb/pkg/props"
+    "github.com/phpboyscout/go-tool-base/pkg/logger"
+    "github.com/phpboyscout/go-tool-base/pkg/setup"
+    "github.com/phpboyscout/go-tool-base/pkg/props"
 )
 
 func main() {

@@ -1,4 +1,4 @@
-module github.com/phpboyscout/gtb
+module github.com/phpboyscout/go-tool-base
 
 go 1.26.1
 

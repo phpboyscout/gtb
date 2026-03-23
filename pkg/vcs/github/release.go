@@ -8,7 +8,7 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/google/go-github/v80/github"
 
-	"github.com/phpboyscout/gtb/pkg/vcs/release"
+	"github.com/phpboyscout/go-tool-base/pkg/vcs/release"
 )
 
 // githubRelease implements release.Release.

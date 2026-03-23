@@ -4,10 +4,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/phpboyscout/gtb/pkg/errorhandling"
-	"github.com/phpboyscout/gtb/pkg/logger"
-	p "github.com/phpboyscout/gtb/pkg/props"
-	"github.com/phpboyscout/gtb/pkg/setup"
+	"github.com/phpboyscout/go-tool-base/pkg/errorhandling"
+	"github.com/phpboyscout/go-tool-base/pkg/logger"
+	p "github.com/phpboyscout/go-tool-base/pkg/props"
+	"github.com/phpboyscout/go-tool-base/pkg/setup"
 
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"

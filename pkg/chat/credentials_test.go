@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	mockConfig "github.com/phpboyscout/gtb/mocks/pkg/config"
-	"github.com/phpboyscout/gtb/pkg/props"
+	mockConfig "github.com/phpboyscout/go-tool-base/mocks/pkg/config"
+	"github.com/phpboyscout/go-tool-base/pkg/props"
 )
 
 func TestGetOpenAICredentials(t *testing.T) {

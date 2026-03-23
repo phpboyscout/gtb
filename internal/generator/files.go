@@ -13,7 +13,7 @@ import (
 	"github.com/dave/dst/decorator"
 	"github.com/spf13/afero"
 
-	"github.com/phpboyscout/gtb/internal/generator/templates"
+	"github.com/phpboyscout/go-tool-base/internal/generator/templates"
 )
 
 func (g *Generator) generateAssetFiles(cmdDir string) error {

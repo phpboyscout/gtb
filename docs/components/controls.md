@@ -38,7 +38,7 @@ import (
     "log/slog"
     "os"
 
-    "github.com/phpboyscout/gtb/pkg/controls"
+    "github.com/phpboyscout/go-tool-base/pkg/controls"
 )
 
 func createStartFunc(srv *http.Server) controls.StartFunc {
@@ -279,7 +279,7 @@ import (
     "context"
     "log/slog"
 
-    "github.com/phpboyscout/gtb/pkg/controls"
+    "github.com/phpboyscout/go-tool-base/pkg/controls"
 )
 
 func setupController(ctx context.Context, logger *slog.Logger) *controls.Controller {
@@ -551,7 +551,7 @@ The GTB library includes auto-generated mocks for testing:
 import (
     "testing"
 
-    "github.com/phpboyscout/gtb/mocks/pkg/controls"
+    "github.com/phpboyscout/go-tool-base/mocks/pkg/controls"
     "github.com/stretchr/testify/assert"
 )
 
@@ -669,8 +669,8 @@ Expected configuration keys:
 
 ```go
 import (
-    "github.com/phpboyscout/gtb/pkg/controls"
-    "github.com/phpboyscout/gtb/pkg/controls/http"
+    "github.com/phpboyscout/go-tool-base/pkg/controls"
+    "github.com/phpboyscout/go-tool-base/pkg/controls/http"
 )
 
 // In your application setup
@@ -706,8 +706,8 @@ Expected configuration keys:
 
 ```go
 import (
-    "github.com/phpboyscout/gtb/pkg/controls"
-    "github.com/phpboyscout/gtb/pkg/controls/grpc"
+    "github.com/phpboyscout/go-tool-base/pkg/controls"
+    "github.com/phpboyscout/go-tool-base/pkg/controls/grpc"
 )
 
 // In your application setup

@@ -10,14 +10,14 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/phpboyscout/gtb/pkg/logger"
+	"github.com/phpboyscout/go-tool-base/pkg/logger"
 
-	mockConfig "github.com/phpboyscout/gtb/mocks/pkg/config"
-	"github.com/phpboyscout/gtb/pkg/chat"
-	"github.com/phpboyscout/gtb/pkg/config"
-	"github.com/phpboyscout/gtb/pkg/errorhandling"
-	p "github.com/phpboyscout/gtb/pkg/props"
-	"github.com/phpboyscout/gtb/pkg/setup"
+	mockConfig "github.com/phpboyscout/go-tool-base/mocks/pkg/config"
+	"github.com/phpboyscout/go-tool-base/pkg/chat"
+	"github.com/phpboyscout/go-tool-base/pkg/config"
+	"github.com/phpboyscout/go-tool-base/pkg/errorhandling"
+	p "github.com/phpboyscout/go-tool-base/pkg/props"
+	"github.com/phpboyscout/go-tool-base/pkg/setup"
 )
 
 func newTestProps(t *testing.T) *p.Props {

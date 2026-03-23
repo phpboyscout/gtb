@@ -3,7 +3,7 @@ package props
 import (
 	"slices"
 
-	"github.com/phpboyscout/gtb/pkg/errorhandling"
+	"github.com/phpboyscout/go-tool-base/pkg/errorhandling"
 )
 
 type FeatureCmd string

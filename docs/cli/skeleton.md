@@ -62,11 +62,11 @@ import (
     "embed"
     "os"
 
-    gtbRoot "github.com/phpboyscout/gtb/pkg/cmd/root"
-    "github.com/phpboyscout/gtb/pkg/errorhandling"
-    "github.com/phpboyscout/gtb/pkg/logger"
-    "github.com/phpboyscout/gtb/pkg/props"
-    "github.com/phpboyscout/gtb/pkg/version"
+    gtbRoot "github.com/phpboyscout/go-tool-base/pkg/cmd/root"
+    "github.com/phpboyscout/go-tool-base/pkg/errorhandling"
+    "github.com/phpboyscout/go-tool-base/pkg/logger"
+    "github.com/phpboyscout/go-tool-base/pkg/props"
+    "github.com/phpboyscout/go-tool-base/pkg/version"
 
     "github.com/spf13/afero"
     "github.com/spf13/cobra"
@@ -125,7 +125,7 @@ import (
     "my-awesome-tool/internal/version"
     "my-awesome-tool/pkg/cmd/root"
 
-    pkgRoot "github.com/phpboyscout/gtb/pkg/cmd/root"
+    pkgRoot "github.com/phpboyscout/go-tool-base/pkg/cmd/root"
 )
 
 func main() {

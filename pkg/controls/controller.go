@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/phpboyscout/gtb/pkg/logger"
+	"github.com/phpboyscout/go-tool-base/pkg/logger"
 )
 
 // ErrShutdown is the cause attached to the controller context when a graceful
