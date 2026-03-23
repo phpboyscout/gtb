@@ -2,12 +2,22 @@
 title: Module and Repository Rename (gtb to go-tool-base)
 description: Specification for the global rename of the GitHub repository and Go module from gtb to go-tool-base to align with the new pitch strategy.
 date: 2026-03-23
-status: DRAFT
+status: IMPLEMENTED
 tags: [architecture, module, branding]
 authors: [Matt Cockayne <matt@phpboyscout.com>]
 ---
 
 # Module and Repository Rename (gtb to go-tool-base)
+Authors
+:   Matt Cockayne, Claude (claude-opus-4-6) *(AI drafting assistant)*
+
+Date
+:   23 March 2026
+
+Status
+:   IMPLEMENTED
+
+---
 
 ## Problem Statement
 The current Go module and GitHub repository are named `gtb` (`github.com/phpboyscout/go-tool-base`). Market research has shown that the acronym "GTB" is heavily overloaded across multiple industries (cybersecurity, bioinformatics, spatial analysis). This creates significant brand confusion and SEO issues. To effectively position the framework as the premier "Intelligent Application Lifecycle Framework for Go", the public presence, module path, and repository name must correctly reflect the full unabbreviated name: **Go Tool Base**.
