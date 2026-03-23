@@ -39,6 +39,7 @@ This spec defines an opt-in telemetry framework with:
 - Defined event types for command invocations, errors, and feature usage
 - Privacy controls including data anonymisation and local-only mode
 - CLI management commands (`telemetry enable`, `telemetry disable`, `telemetry status`)
+- Integration with the unified logger abstraction ([2026-03-23-unified-logger-abstraction](2026-03-23-unified-logger-abstraction.md)) for diagnostic output
 
 ---
 
@@ -53,6 +54,8 @@ This spec defines an opt-in telemetry framework with:
 **Anonymisation by default**: No personally identifiable information (PII) is collected. Machine IDs are hashed. IP addresses are not stored. Command arguments are not recorded (only command names).
 
 **Local-only mode**: Users can enable telemetry in local-only mode where events are written to a file but never transmitted. Useful for tool authors debugging their own usage patterns.
+
+**Unified logger integration**: The `Collector` and CLI commands use `logger.Logger` from `pkg/logger` (see [unified logger abstraction spec](2026-03-23-unified-logger-abstraction.md)) for diagnostic output. This ensures telemetry warnings and errors flow through the same logging pipeline as the rest of the application, including any structured logging or OTEL export configured by the user.
 
 ---
 
@@ -111,11 +114,12 @@ type Config struct {
 
 // Collector accumulates events and periodically flushes to the backend.
 type Collector struct {
-    backend  Backend
-    config   Config
-    buffer   []Event
-    mu       sync.Mutex
+    backend   Backend
+    config    Config
+    buffer    []Event
+    mu        sync.Mutex
     machineID string
+    log       logger.Logger
 }
 ```
 
@@ -127,16 +131,18 @@ type Collector struct {
 
 ```go
 // NewCollector creates a telemetry collector. If telemetry is disabled,
-// returns a no-op collector that discards all events.
-func NewCollector(cfg Config, backend Backend) *Collector {
+// returns a no-op collector that discards all events. The logger is used
+// for diagnostic output (flush failures, backend errors).
+func NewCollector(cfg Config, backend Backend, log logger.Logger) *Collector {
     if !cfg.Enabled {
-        return &Collector{backend: &noopBackend{}, config: cfg}
+        return &Collector{backend: &noopBackend{}, config: cfg, log: log}
     }
 
     return &Collector{
         backend:   backend,
         config:    cfg,
         machineID: hashedMachineID(),
+        log:       log,
     }
 }
 
@@ -168,7 +174,13 @@ func (c *Collector) Flush(ctx context.Context) error {
         return nil
     }
 
-    return c.backend.Send(ctx, events)
+    if err := c.backend.Send(ctx, events); err != nil {
+        c.log.Warn("telemetry flush failed", "error", err, "events_dropped", len(events))
+        return err
+    }
+
+    c.log.Debug("telemetry flushed", "events", len(events))
+    return nil
 }
 ```
 
@@ -318,9 +330,8 @@ func newEnableCmd(props *p.Props) *cobra.Command {
         Short: "Enable anonymous usage telemetry",
         RunE: func(cmd *cobra.Command, args []string) error {
             props.Config.Set("telemetry.enabled", true)
-            // Persist to config file
-            fmt.Fprintln(os.Stdout, "Telemetry enabled. Thank you for helping improve "+props.Tool.Name+"!")
-            fmt.Fprintln(os.Stdout, "No personally identifiable information is collected.")
+            props.Logger.Print("Telemetry enabled. Thank you for helping improve " + props.Tool.Name + "!")
+            props.Logger.Print("No personally identifiable information is collected.")
             return nil
         },
     }
@@ -332,7 +343,7 @@ func newDisableCmd(props *p.Props) *cobra.Command {
         Short: "Disable usage telemetry",
         RunE: func(cmd *cobra.Command, args []string) error {
             props.Config.Set("telemetry.enabled", false)
-            fmt.Fprintln(os.Stdout, "Telemetry disabled.")
+            props.Logger.Print("Telemetry disabled.")
             return nil
         },
     }
@@ -347,14 +358,14 @@ func newStatusCmd(props *p.Props) *cobra.Command {
             localOnly := props.Config.GetBool("telemetry.local_only")
 
             if !enabled {
-                fmt.Fprintln(os.Stdout, "Telemetry: disabled")
+                props.Logger.Print("Telemetry: disabled")
             } else if localOnly {
-                fmt.Fprintln(os.Stdout, "Telemetry: enabled (local-only)")
+                props.Logger.Print("Telemetry: enabled (local-only)")
             } else {
-                fmt.Fprintln(os.Stdout, "Telemetry: enabled")
+                props.Logger.Print("Telemetry: enabled")
             }
 
-            fmt.Fprintf(os.Stdout, "Machine ID: %s\n", hashedMachineID())
+            props.Logger.Print("Machine ID: " + hashedMachineID())
             return nil
         },
     }
@@ -364,10 +375,10 @@ func newStatusCmd(props *p.Props) *cobra.Command {
 ### Integration with Root Command
 
 ```go
-// In PersistentPreRunE, after config is loaded:
+// In PersistentPreRunE, after config and logger are initialised:
 func setupTelemetry(props *p.Props) *telemetry.Collector {
     if props.Tool.IsDisabled(p.TelemetryCmd) {
-        return telemetry.NewCollector(telemetry.Config{}, nil)
+        return telemetry.NewCollector(telemetry.Config{}, nil, props.Logger)
     }
 
     cfg := telemetry.Config{
@@ -388,7 +399,7 @@ func setupTelemetry(props *p.Props) *telemetry.Collector {
         backend = nil // no endpoint configured
     }
 
-    return telemetry.NewCollector(cfg, backend)
+    return telemetry.NewCollector(cfg, backend, props.Logger)
 }
 
 // In PersistentPostRunE:
@@ -405,19 +416,21 @@ func flushTelemetry(collector *telemetry.Collector) {
 
 ```
 pkg/telemetry/
-├── telemetry.go       ← NEW: Event, Collector, Config types
+├── telemetry.go       ← NEW: Event, Collector, Config types (imports pkg/logger)
 ├── backend.go         ← NEW: Backend interface, noop/stdout/file/http implementations
 ├── machine.go         ← NEW: hashed machine ID
 ├── telemetry_test.go  ← NEW: collector tests
 ├── backend_test.go    ← NEW: backend tests
 pkg/cmd/telemetry/
-├── telemetry.go       ← NEW: enable/disable/status commands
+├── telemetry.go       ← NEW: enable/disable/status commands (uses props.Logger)
 ├── telemetry_test.go  ← NEW: command tests
 pkg/props/
 ├── tool.go            ← MODIFIED: add TelemetryCmd feature flag
 pkg/cmd/root/
 ├── root.go            ← MODIFIED: telemetry setup and flush
 ```
+
+**Dependency**: This spec depends on [2026-03-23-unified-logger-abstraction](2026-03-23-unified-logger-abstraction.md). The `Collector` accepts `logger.Logger` and CLI commands use `props.Logger.Print()`. If logger abstraction is not yet implemented, use `charmbracelet/log` directly as an interim measure.
 
 ---
 
@@ -435,6 +448,8 @@ pkg/cmd/root/
 | `TestFileBackend` | Send → events appended to file |
 | `TestHTTPBackend_Success` | Mock server → events posted |
 | `TestHTTPBackend_Timeout` | Slow server → no error (silently drops) |
+| `TestCollector_FlushError_LogsWarning` | Backend error → warning logged via logger |
+| `TestCollector_FlushSuccess_LogsDebug` | Successful flush → debug message logged |
 | `TestHashedMachineID` | Same machine → same hash |
 | `TestHashedMachineID_NotRaw` | Hash does not contain hostname |
 | `TestEnableCmd` | Enable → config updated |
@@ -501,7 +516,7 @@ func TestEvent_NoPII(t *testing.T) {
 
 ## Future Considerations
 
-- **OpenTelemetry backend**: For enterprise users who already have OTel infrastructure, a `telemetry.NewOTelBackend()` would integrate directly with their tracing/metrics pipeline.
+- **OpenTelemetry backend**: For enterprise users who already have OTel infrastructure, a `telemetry.NewOTelBackend()` would integrate directly with their tracing/metrics pipeline. The unified logger abstraction's `slog.Handler` bridge (see [logger spec](2026-03-23-unified-logger-abstraction.md)) enables routing structured log events to the same OTEL collector, providing a single pipeline for both telemetry events and application logs.
 - **Usage dashboards**: A companion web service that aggregates telemetry data and provides visualisations for tool authors.
 - **Consent prompt**: On first run after tool update, prompt the user to opt in rather than requiring a manual `telemetry enable` command.
 - **Event sampling**: For high-volume tools, sample events (e.g., 10%) to reduce data volume while maintaining statistical significance.
