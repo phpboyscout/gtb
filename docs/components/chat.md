@@ -37,6 +37,8 @@ The `Config` struct accepts the following fields:
 | `ResponseSchema` | `any` | JSON schema for enforcing structured output (used by `Ask`). |
 | `SchemaName` | `string` | Name for the response schema tool. |
 | `SchemaDescription` | `string` | Description for the response schema tool. |
+| `MaxSteps` | `int` | Maximum ReAct loop iterations in `Chat()`. Zero uses the default (20). |
+| `MaxTokens` | `int` | Maximum tokens per response. Zero uses the provider default (OpenAI: 4096, Claude: 8192, Gemini: 8192). |
 
 ```go
 import "github.com/phpboyscout/gtb/pkg/chat"
@@ -176,7 +178,7 @@ When a model issues a tool call, the `Chat` method:
 5. **Injects** the result back into the conversation history.
 6. **Automatically** resumes the conversation to get the model's next response.
 
-This loop continues for up to 20 steps before returning an error.
+This loop continues for up to `Config.MaxSteps` iterations (default 20) before returning an error.
 
 ### Multi-Turn Conversations
 

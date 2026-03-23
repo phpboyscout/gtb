@@ -41,8 +41,8 @@ import (
     "github.com/phpboyscout/gtb/pkg/controls"
 )
 
-func createStartFunc(srv *http.Server) func() error {
-    return func() error {
+func createStartFunc(srv *http.Server) controls.StartFunc {
+    return func(ctx context.Context) error {
         err := srv.ListenAndServe()
         if err != nil && err != http.ErrServerClosed {
             return err
@@ -51,8 +51,8 @@ func createStartFunc(srv *http.Server) func() error {
     }
 }
 
-func createStopFunc(ctx context.Context, srv *http.Server) func() {
-    return func() {
+func createStopFunc(srv *http.Server) controls.StopFunc {
+    return func(ctx context.Context) {
         if err := srv.Shutdown(ctx); err != nil {
             // Log error but don't panic during shutdown
             slog.Error("Server shutdown error", "error", err)
@@ -87,10 +87,9 @@ func main() {
 
     // Register the HTTP server as a controlled service
     controller.Register(
-        "http-server",                    // Service ID
-        createStartFunc(srv),             // Start function
-        createStopFunc(ctx, srv),         // Stop function
-        func() {},                        // Status function (empty for this example)
+        "http-server",
+        controls.WithStart(createStartFunc(srv)),
+        controls.WithStop(createStopFunc(srv)),
     )
 
     // Start all registered services
@@ -228,10 +227,17 @@ type Service struct {
 }
 
 // Function types for service lifecycle
-type StartFunc func() error
-type StopFunc func()
+type StartFunc func(context.Context) error
+type StopFunc func(context.Context)
 type StatusFunc func()
 type ValidErrorFunc func(error) bool
+
+// ServiceOption is a functional option for configuring a Service.
+type ServiceOption func(*Service)
+
+func WithStart(fn StartFunc) ServiceOption
+func WithStop(fn StopFunc) ServiceOption
+func WithStatus(fn StatusFunc) ServiceOption
 ```
 
 ### Controller States
@@ -299,7 +305,7 @@ func registerHTTPServer(controller *controls.Controller, props *props.Props) {
     }
 
     // Define service functions
-    startFunc := func() error {
+    startFunc := func(ctx context.Context) error {
         props.Logger.Info("Starting HTTP server", "addr", server.Addr)
         err := server.ListenAndServe()
         if err != nil && err != http.ErrServerClosed {
@@ -308,11 +314,8 @@ func registerHTTPServer(controller *controls.Controller, props *props.Props) {
         return nil
     }
 
-    stopFunc := func() {
+    stopFunc := func(ctx context.Context) {
         props.Logger.Info("Stopping HTTP server")
-        ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-        defer cancel()
-
         if err := server.Shutdown(ctx); err != nil {
             props.Logger.Error("HTTP server shutdown error", "error", err)
         }
@@ -328,8 +331,12 @@ func registerHTTPServer(controller *controls.Controller, props *props.Props) {
         }
     }
 
-    // Register the service
-    controller.Register("http-server", startFunc, stopFunc, statusFunc)
+    // Register the service using functional options
+    controller.Register("http-server",
+        controls.WithStart(startFunc),
+        controls.WithStop(stopFunc),
+        controls.WithStatus(statusFunc),
+    )
 }
 ```
 
@@ -339,7 +346,7 @@ func registerHTTPServer(controller *controls.Controller, props *props.Props) {
 func registerBackgroundWorker(controller *controls.Controller, props *props.Props) {
     workerCtx, workerCancel := context.WithCancel(controller.GetContext())
 
-    startFunc := func() error {
+    startFunc := func(ctx context.Context) error {
         props.Logger.Info("Starting background worker")
 
         go func() {
@@ -364,7 +371,7 @@ func registerBackgroundWorker(controller *controls.Controller, props *props.Prop
         return nil
     }
 
-    stopFunc := func() {
+    stopFunc := func(ctx context.Context) {
         props.Logger.Info("Stopping background worker")
         workerCancel()
     }
@@ -378,7 +385,11 @@ func registerBackgroundWorker(controller *controls.Controller, props *props.Prop
         }
     }
 
-    controller.Register("background-worker", startFunc, stopFunc, statusFunc)
+    controller.Register("background-worker",
+        controls.WithStart(startFunc),
+        controls.WithStop(stopFunc),
+        controls.WithStatus(statusFunc),
+    )
 }
 ```
 
@@ -548,7 +559,7 @@ func TestServiceRegistration(t *testing.T) {
     mockController := controls.NewMockControllable(t)
 
     // Set up expectations
-    mockController.EXPECT().Register("test-service", mock.Anything, mock.Anything, mock.Anything).Return()
+    mockController.EXPECT().Register("test-service", mock.Anything, mock.Anything).Return()
     mockController.EXPECT().Start().Return()
 
     // Test service registration
@@ -578,13 +589,13 @@ func TestHTTPServerLifecycle(t *testing.T) {
     started := false
     stopped := false
 
-    startFunc := func() error {
+    startFunc := func(ctx context.Context) error {
         started = true
         // Simulate server start without actually binding
         return nil
     }
 
-    stopFunc := func() {
+    stopFunc := func(ctx context.Context) {
         stopped = true
     }
 
@@ -596,7 +607,11 @@ func TestHTTPServerLifecycle(t *testing.T) {
     }
 
     // Register and test
-    controller.Register("test-server", startFunc, stopFunc, statusFunc)
+    controller.Register("test-server",
+        controls.WithStart(startFunc),
+        controls.WithStop(stopFunc),
+        controls.WithStatus(statusFunc),
+    )
 
     // Test start
     controller.Start()
@@ -719,10 +734,10 @@ controller.Register(
 
 ```go
 // Recommended: Services should respect the controller's context
-func createDatabaseService(controller *controls.Controller) (StartFunc, StopFunc, StatusFunc) {
+func createDatabaseService(controller *controls.Controller) (controls.StartFunc, controls.StopFunc, controls.StatusFunc) {
     var db *sql.DB
 
-    start := func() error {
+    start := func(ctx context.Context) error {
         var err error
         db, err = sql.Open("postgres", connectionString)
         if err != nil {
@@ -740,7 +755,7 @@ func createDatabaseService(controller *controls.Controller) (StartFunc, StopFunc
         return nil
     }
 
-    stop := func() {
+    stop := func(ctx context.Context) {
         if db != nil {
             db.Close()
         }
@@ -787,10 +802,10 @@ func createDatabaseService(controller *controls.Controller) (StartFunc, StopFunc
 
 ```go
 // Implement proper timeout handling
-func createGracefulService(timeout time.Duration) (StartFunc, StopFunc) {
+func createGracefulService(timeout time.Duration) (controls.StartFunc, controls.StopFunc) {
     var cancel context.CancelFunc
 
-    start := func() error {
+    start := func(ctx context.Context) error {
         ctx, c := context.WithCancel(context.Background())
         cancel = c
 
@@ -810,7 +825,7 @@ func createGracefulService(timeout time.Duration) (StartFunc, StopFunc) {
         return nil
     }
 
-    stop := func() {
+    stop := func(ctx context.Context) {
         if cancel != nil {
             cancel()
         }

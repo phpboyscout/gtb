@@ -44,7 +44,7 @@ type Containable interface {
     AddObserver(o Observable)
     AddObserverFunc(f func(Containable, chan error))
     ToJSON() string
-    Dump()
+    Dump(w io.Writer)
 }
 ```
 
@@ -56,13 +56,13 @@ The `Container` struct is the primary implementation of the `Containable` interf
 type Container struct {
     ID        string
     viper     *viper.Viper
-    logger    *slog.Logger
+    logger    *log.Logger
     observers []Observable
 }
 
 // Core factory functions:
-func NewFilesContainer(l *slog.Logger, fs afero.Fs, configFiles ...string) *Container
-func NewReaderContainer(l *slog.Logger, format string, configReaders ...io.Reader) *Container
+func NewFilesContainer(l *log.Logger, fs afero.Fs, configFiles ...string) *Container
+func NewReaderContainer(l *log.Logger, format string, configReaders ...io.Reader) *Container
 ```
 
 ---
@@ -802,7 +802,7 @@ The Container provides methods for inspecting configuration state, which is cruc
 
 ```go
 // Print all configuration values as JSON to stdout (great for quick debugging)
-container.Dump()
+container.Dump(os.Stdout)
 
 // Get configuration as JSON string for structured logging
 configJSON := container.ToJSON()
@@ -875,7 +875,7 @@ type Containable interface {
     AddObserver(o Observable)
     AddObserverFunc(f func(Containable, chan error))
     ToJSON() string
-    Dump()
+    Dump(w io.Writer)
 }
 ```
 

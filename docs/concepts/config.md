@@ -64,11 +64,11 @@ When the underlying configuration file is modified on disk, the framework detect
 Understanding where a value is coming from can be difficult in a multi-layered system. We provide helper methods to inspect the current state:
 
 ### ToJSON & Dump
-The `ToJSON()` and `Dump()` methods provide a snapshot of the current "merged" configuration state. This is invaluable when debugging precedence issues.
+The `ToJSON()` and `Dump(w io.Writer)` methods provide a snapshot of the current "merged" configuration state. `Dump` accepts an `io.Writer` parameter so callers control where output is directed. This is invaluable when debugging precedence issues.
 
 ```go
 // print the entire merged config to stdout as JSON
-props.Config.Dump()
+props.Config.Dump(os.Stdout)
 ```
 
 ### Path Traceability

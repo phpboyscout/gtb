@@ -57,11 +57,11 @@ When a stop is triggered, the controller iterates through all registered service
 
 ## State & Thread Safety
 
-To prevent race conditions during lifecycle transitions, the `Controller` uses a `sync.Mutex` to protect its internal `State`. This allows other components of the application to safely query `IsRunning()`, `IsStopping()`, or `IsStopped()`.
+To prevent race conditions during lifecycle transitions, the `Controller` uses a `sync.Mutex` to protect its internal `State`. State transitions use an internal `compareAndSetState` method that atomically checks the current state and sets the new state, preventing check-then-act races. For example, concurrent `Stop()` calls are safe — only the first caller performs the shutdown; subsequent calls are no-ops. This allows other components of the application to safely query `IsRunning()`, `IsStopping()`, or `IsStopped()`.
 
 ## Best Practices
 
-- **Atomic Functions**: Ensure your `Start` and `Stop` functions are idempotent and handle internal errors gracefully.
+- **Context-Aware Functions**: `StartFunc` and `StopFunc` receive a `context.Context` parameter. Use this context for cancellation and timeout handling rather than creating your own.
 - **Channel Buffering**: Use appropriate buffering for error and signal channels to prevent background services from blocking during high-volume events.
 - **Logging**: The controller accepts an optional `slog.Logger`. Always provide a logger to ensure service transitions and background errors are visible to the user.
 - **Context Awareness**: Background services should always respect the `context.Context` provided by the controller for internal task cancellation.

@@ -104,6 +104,25 @@ The AI initialiser abstracts over multiple LLM providers, normalizing their conf
     *   It displays a **warning note** in the UI if an env var is detected, informing the user that the env var will take precedence over the config file value they are about to set.
 4.  **Persistence**: The provider choice and the specific key are written to the config file.
 
+## Security Features
+
+### Automatic `.gitignore` Generation
+
+During `init`, if the config directory does not already contain a `.gitignore` file, one is automatically created to prevent accidental commit of sensitive files:
+
+```
+# Ignore files that may contain secrets
+*.env
+*.secret
+*.key
+```
+
+Existing `.gitignore` files are never overwritten.
+
+### API Key Detection Warning
+
+After writing config files, the init process scans config files for common API key patterns (`sk-`, `api_key`, `token`, `secret`). If the config directory is inside a git repository, a warning is logged advising the user to ensure the config directory is gitignored. This provides defence in depth against accidental credential commits.
+
 ## Creating Custom Initialisers
 
 For a step-by-step guide on implementing your own initialiser, referring to the [How-to Guide](../../how-to/add-initialiser.md).

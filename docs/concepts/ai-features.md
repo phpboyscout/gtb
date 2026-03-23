@@ -46,7 +46,7 @@ The most powerful feature of `pkg/chat` is its ability to handle **Autonomous Ex
 - The AI decides which tool to call based on the user's prompt.
 - The framework **automatically executes** the local Go function.
 - The results are fed back to the AI for final reasoning.
-- This continues in a loop (up to 20 steps) until the task is complete.
+- This continues in a loop (up to `Config.MaxSteps` iterations, default 20) until the task is complete.
 
 !!! note "ProviderClaudeLocal and Tools"
     `ProviderClaudeLocal` does not support tool calling in the current release. Tool integration via MCP server is planned for a future release. Use `ProviderClaude` or another API-backed provider when your feature requires `SetTools`.
@@ -130,7 +130,7 @@ type Analysis struct {
 
 // Ask the AI to perform the analysis
 var result Analysis
-err := props.Chat.Ask("Analyze this log file", &result)
+err := props.Chat.Ask(ctx, "Analyze this log file", &result)
 ```
 
 By leveraging `pkg/chat`, you can transform simple CLI utilities into "smart" tools that reason about the data they process.

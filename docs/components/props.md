@@ -174,9 +174,11 @@ type Tool struct {
 
 // ReleaseSource identifies where the tool's releases are hosted.
 type ReleaseSource struct {
-    Type  string `json:"type" yaml:"type"`   // "github" or "gitlab"
-    Owner string `json:"owner" yaml:"owner"` // Organisation or user
-    Repo  string `json:"repo" yaml:"repo"`   // Repository name
+    Type    string `json:"type" yaml:"type"`       // "github" or "gitlab"
+    Host    string `json:"host" yaml:"host"`       // Custom host (e.g., self-hosted GitLab)
+    Owner   string `json:"owner" yaml:"owner"`     // Organisation or user
+    Repo    string `json:"repo" yaml:"repo"`       // Repository name
+    Private bool   `json:"private" yaml:"private"` // Whether the repository is private
 }
 
 // Feature represents the configuration state of a feature (Enabled/Disabled).
@@ -440,9 +442,11 @@ ReleaseSource: props.ReleaseSource{
 
 // GitLab (including self-hosted)
 ReleaseSource: props.ReleaseSource{
-    Type:  "gitlab",
-    Owner: "your-group",
-    Repo:  "tool-name",
+    Type:    "gitlab",
+    Host:    "gitlab.example.com", // Optional: defaults to gitlab.com
+    Owner:   "your-group",
+    Repo:    "tool-name",
+    Private: true,                 // Set to true for private repositories
 },
 ```
 
