@@ -11,7 +11,7 @@ import (
 
 	"github.com/phpboyscout/go-tool-base/pkg/config"
 	"github.com/phpboyscout/go-tool-base/pkg/controls"
-  "github.com/phpboyscout/go-tool-base/pkg/logger"
+	"github.com/phpboyscout/go-tool-base/pkg/logger"
 )
 
 // NewServer returns a new preconfigured grpc.Server.
