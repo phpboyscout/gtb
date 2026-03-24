@@ -124,6 +124,7 @@ Provides service lifecycle operations:
 type Runner interface {
     Start()
     Stop()
+    Status() HealthReport
     IsRunning() bool
     IsStopped() bool
     IsStopping() bool
@@ -224,6 +225,17 @@ type Service struct {
     Start  StartFunc
     Stop   StopFunc
     Status StatusFunc
+}
+
+type ServiceStatus struct {
+    Name   string `json:"name"`
+    Status string `json:"status"` // "OK", "ERROR"
+    Error  string `json:"error,omitempty"`
+}
+
+type HealthReport struct {
+    OverallHealthy bool            `json:"overall_healthy"`
+    Services       []ServiceStatus `json:"services"`
 }
 
 // Function types for service lifecycle
@@ -649,13 +661,15 @@ GTB provides pre-configured server controls for HTTP and gRPC that integrate sea
 
 ### HTTP Server Control
 
-The `pkg/controls/http` package provides a standard HTTP/TLS server that follows best practices for timeouts and security.
+The `pkg/controls/http` package provides a standard HTTP/TLS server that follows best practices for timeouts and security. It automatically registers a `/healthz` endpoint that reports the aggregate status of all services in the controller.
 
 #### Functions
 
 - **`NewServer(ctx context.Context, cfg config.Containable, handler http.Handler) (*http.Server, error)`**: Returns a pre-configured `*http.Server` with production-ready timeouts (Read: 5s, Write: 10s, Idle: 120s) and secure TLS settings.
-- **`Start(cfg config.Containable, l logger.Logger, srv *http.Server) controls.StartFunc`**: Returns a start function that handles both HTTP and HTTPS based on configuration.
+- **`HealthHandler(controller controls.Controllable) http.HandlerFunc`**: Returns an HTTP handler that responds with the controller's aggregate health report.
+- **`Start(cfg config.Containable, l logger.Logger, srv *http.Server) controls.StartFunc`**: Returns a non-blocking start function that binds to the port and starts the server in a goroutine.
 - **`Stop(l logger.Logger, srv *http.Server) controls.StopFunc`**: Returns a stop function that performs a graceful shutdown.
+- **`Register(ctx context.Context, id string, controller controls.Controllable, cfg config.Containable, logger logger.Logger, handler http.Handler) error`**: Creates a new server, wraps the handler with the `/healthz` endpoint, and registers it with the controller.
 
 #### Configuration
 
@@ -678,25 +692,27 @@ import (
 )
 
 // In your application setup
-srv, _ := http.NewServer(ctx, props.Config, myHandler)
+mux := http.NewServeMux()
+mux.HandleFunc("/api/data", myDataHandler)
 
-controller.Register(
-    "http-api",
-    http.Start(props.Config, props.Logger, srv),
-    http.Stop(props.Logger, srv),
-    http.Status,
-)
+// Automatically registers /healthz and your mux
+srv, err := http.Register(ctx, "http-api", controller, props.Config, props.Logger, mux)
+if err != nil {
+    return err
+}
 ```
 
 ### gRPC Server Control
 
-The `pkg/controls/grpc` package provides a standard gRPC server with reflection enabled by default.
+The `pkg/controls/grpc` package provides a standard gRPC server with reflection and the standard gRPC Health Checking Protocol enabled by default.
 
 #### Functions
 
 - **`NewServer(cfg config.Containable, opt ...grpc.ServerOption) (*grpc.Server, error)`**: Returns a new `*grpc.Server` with reflection registered.
-- **`Start(cfg config.Containable, l logger.Logger, srv *grpc.Server) controls.StartFunc`**: Returns a start function that listens on the configured port.
+- **`RegisterHealthService(srv *grpc.Server, controller controls.Controllable)`**: Registers the standard gRPC health service wired to the controller status.
+- **`Start(cfg config.Containable, l logger.Logger, srv *grpc.Server) controls.StartFunc`**: Returns a non-blocking start function that listens on the configured port and starts serving in a goroutine.
 - **`Stop(l logger.Logger, srv *grpc.Server) controls.StopFunc`**: Returns a stop function that performs a `GracefulStop`.
+- **`Register(ctx context.Context, id string, controller controls.Controllable, cfg config.Containable, logger logger.Logger, opt ...grpc.ServerOption) (*grpc.Server, error)`**: Creates a server, registers the health service, adds it to the controller, and returns the server instance for further service registration.
 
 #### Configuration
 
@@ -713,18 +729,18 @@ Expected configuration keys:
 import (
     "github.com/phpboyscout/go-tool-base/pkg/controls"
     "github.com/phpboyscout/go-tool-base/pkg/controls/grpc"
+    "github.com/phpboyscout/go-tool-base/pkg/service/pb"
 )
 
 // In your application setup
-srv, _ := grpc.NewServer(props.Config)
-// Register your gRPC services here: pb.Register*Server(srv, myService)
+// Automatically registers health service and adds to controller
+srv, err := grpc.Register(ctx, "grpc-api", controller, props.Config, props.Logger)
+if err != nil {
+    return err
+}
 
-controller.Register(
-    "grpc-api",
-    grpc.Start(props.Config, props.Logger, srv),
-    grpc.Stop(props.Logger, srv),
-    grpc.Status,
-)
+// Register your custom services
+pb.RegisterMyServiceServer(srv, &myServiceImpl{})
 ```
 
 ## Best Practices

@@ -47,6 +47,17 @@ func WithStatus(fn StatusFunc) ServiceOption {
 	}
 }
 
+type ServiceStatus struct {
+	Name   string `json:"name"`
+	Status string `json:"status"` // "OK", "ERROR"
+	Error  string `json:"error,omitempty"`
+}
+
+type HealthReport struct {
+	OverallHealthy bool            `json:"overall_healthy"`
+	Services       []ServiceStatus `json:"services"`
+}
+
 type HealthMessage struct {
 	Host    string `json:"host"`
 	Port    int    `json:"port"`
@@ -58,6 +69,7 @@ type HealthMessage struct {
 type Runner interface {
 	Start()
 	Stop()
+	Status() HealthReport
 	IsRunning() bool
 	IsStopped() bool
 	IsStopping() bool

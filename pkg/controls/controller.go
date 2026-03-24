@@ -226,7 +226,7 @@ func (c *Controller) processControlMessages() {
 		case Stop:
 			c.handleStopMessage()
 		case Status:
-			c.services.status()
+			_ = c.services.status()
 		}
 	}
 }
@@ -253,6 +253,11 @@ func (c *Controller) handleStopMessage() {
 	c.wg.Add(stopping)
 	c.SetState(Stopped)
 	c.logger.Info("Stopped")
+}
+
+// Status returns an aggregate health report for all registered services.
+func (c *Controller) Status() HealthReport {
+	return c.services.status()
 }
 
 // Compile-time interface satisfaction checks.

@@ -2,12 +2,16 @@ package grpc
 
 import (
 	"context"
+	"fmt"
+	"net"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/health/grpc_health_v1"
 
 	mockConfig "github.com/phpboyscout/go-tool-base/mocks/pkg/config"
 	"github.com/phpboyscout/go-tool-base/pkg/controls"
@@ -77,7 +81,7 @@ func TestRegister(t *testing.T) {
 
 	controller := controls.NewController(context.Background(), controls.WithoutSignals())
 
-	err := Register(context.Background(), "test-grpc", controller, cfg, testLogger())
+	_, err := Register(context.Background(), "test-grpc", controller, cfg, testLogger())
 	assert.NoError(t, err)
 }
 
@@ -93,6 +97,50 @@ func TestStatus_NilServer(t *testing.T) {
 	err := Status(nil)()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "grpc server is nil")
+}
+
+func TestGRPCHealth(t *testing.T) {
+	t.Parallel()
+
+	// Get a free port
+	listener, err := net.Listen("tcp", ":0")
+	require.NoError(t, err)
+	port := listener.Addr().(*net.TCPAddr).Port
+	_ = listener.Close()
+
+	cfg := mockConfig.NewMockContainable(t)
+	cfg.EXPECT().GetInt("server.grpc.port").Return(port)
+
+	controller := controls.NewController(context.Background(), controls.WithoutSignals())
+	
+	_, err = Register(context.Background(), "test-grpc", controller, cfg, testLogger())
+	require.NoError(t, err)
+
+	controller.Start()
+
+	// Connect to gRPC health service
+	// Use DialContext as Dial is deprecated
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	conn, err := grpc.DialContext(ctx, fmt.Sprintf("localhost:%d", port), 
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithBlock())
+	require.NoError(t, err)
+	defer conn.Close()
+
+	client := grpc_health_v1.NewHealthClient(conn)
+
+	// Check health - should be SERVING initially
+	require.Eventually(t, func() bool {
+		resp, err := client.Check(context.Background(), &grpc_health_v1.HealthCheckRequest{})
+		if err != nil {
+			return false
+		}
+		return resp.Status == grpc_health_v1.HealthCheckResponse_SERVING
+	}, 2*time.Second, 100*time.Millisecond)
+
+	controller.Stop()
+	controller.Wait()
 }
 
 func TestGRPCPortConfig_Specific(t *testing.T) {

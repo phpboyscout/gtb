@@ -2,7 +2,7 @@
 title: "Controls Package Self-Healing and Automatic Restarts"
 description: "A mechanism for detecting and recovering from service failures via automatic restarts."
 date: 2026-03-24
-status: DRAFT
+status: APPROVED
 tags:
   - specification
   - controls
@@ -22,7 +22,7 @@ Date
 :   24 March 2026
 
 Status
-:   DRAFT
+:   APPROVED
 
 ## 1. Overview
 

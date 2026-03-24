@@ -2,7 +2,7 @@
 title: "Controls Package Health Check Integration"
 description: "Standardized health check handlers for HTTP and gRPC services leveraging the Controller status."
 date: 2026-03-24
-status: DRAFT
+status: IMPLEMENTED
 tags:
   - specification
   - controls
@@ -22,7 +22,7 @@ Date
 :   24 March 2026
 
 Status
-:   DRAFT
+:   IMPLEMENTED
 
 ## 1. Overview
 

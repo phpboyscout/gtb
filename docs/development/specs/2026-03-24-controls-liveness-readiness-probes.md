@@ -2,7 +2,7 @@
 title: "Controls Package Liveness and Readiness Probes"
 description: "Differentiated health indicators for application lifecycle management in orchestrated environments."
 date: 2026-03-24
-status: DRAFT
+status: APPROVED
 tags:
   - specification
   - controls
@@ -22,7 +22,7 @@ Date
 :   24 March 2026
 
 Status
-:   DRAFT
+:   APPROVED
 
 ## 1. Overview
 

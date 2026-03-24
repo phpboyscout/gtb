@@ -127,7 +127,7 @@ func TestRegister(t *testing.T) {
 
 	controller := controls.NewController(context.Background(), controls.WithoutSignals())
 
-	err := Register(context.Background(), "test-http", controller, cfg, testLogger(), http.DefaultServeMux)
+	_, err := Register(context.Background(), "test-http", controller, cfg, testLogger(), http.DefaultServeMux)
 	assert.NoError(t, err)
 }
 
@@ -143,4 +143,47 @@ func TestStatus_NilServer(t *testing.T) {
 	err := Status(nil)()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "http server is nil")
+}
+
+func TestHealthz(t *testing.T) {
+	t.Parallel()
+
+	// Get a free port
+	listener, err := net.Listen("tcp", ":0")
+	require.NoError(t, err)
+	port := listener.Addr().(*net.TCPAddr).Port
+	_ = listener.Close()
+
+	cfg := mockConfig.NewMockContainable(t)
+	cfg.EXPECT().GetInt("server.http.port").Return(port)
+	cfg.EXPECT().GetBool("server.tls.enabled").Return(false)
+	cfg.EXPECT().GetString("server.tls.cert").Return("")
+	cfg.EXPECT().GetString("server.tls.key").Return("")
+
+	controller := controls.NewController(context.Background(), controls.WithoutSignals())
+	
+	// Register a service that reports unhealthy
+	controller.Register("unhealthy-service",
+		controls.WithStart(func(_ context.Context) error { return nil }),
+		controls.WithStop(func(_ context.Context) {}),
+		controls.WithStatus(func() error { return fmt.Errorf("failed") }),
+	)
+
+	_, err = Register(context.Background(), "test-http", controller, cfg, testLogger(), http.NewServeMux())
+	require.NoError(t, err)
+
+	controller.Start()
+
+	// Check /healthz - should be 503
+	require.Eventually(t, func() bool {
+		resp, err := http.Get(fmt.Sprintf("http://localhost:%d/healthz", port))
+		if err != nil {
+			return false
+		}
+		defer resp.Body.Close()
+		return resp.StatusCode == http.StatusServiceUnavailable
+	}, 2*time.Second, 50*time.Millisecond)
+
+	controller.Stop()
+	controller.Wait()
 }

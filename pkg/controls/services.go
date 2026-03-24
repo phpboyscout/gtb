@@ -49,13 +49,33 @@ func (q *Services) stop(ctx context.Context) int {
 	return len(q.services)
 }
 
-func (q *Services) status() {
+func (q *Services) status() HealthReport {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
-	for _, s := range q.services {
-		_ = s.Status()
+	report := HealthReport{
+		OverallHealthy: true,
+		Services:       make([]ServiceStatus, 0, len(q.services)),
 	}
+
+	for _, s := range q.services {
+		status := ServiceStatus{
+			Name:   s.Name,
+			Status: "OK",
+		}
+
+		if s.Status != nil {
+			if err := s.Status(); err != nil {
+				status.Status = "ERROR"
+				status.Error = err.Error()
+				report.OverallHealthy = false
+			}
+		}
+
+		report.Services = append(report.Services, status)
+	}
+
+	return report
 }
 
 type Service struct {

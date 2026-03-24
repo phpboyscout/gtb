@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
@@ -20,6 +21,23 @@ const (
 	writeTimeout = 10 * time.Second
 	idleTimeout  = 120 * time.Second
 )
+
+// HealthHandler returns an http.HandlerFunc that responds with the controller's health report.
+func HealthHandler(controller controls.Controllable) http.HandlerFunc {
+	return func(w http.ResponseWriter, _ *http.Request) {
+		report := controller.Status()
+
+		w.Header().Set("Content-Type", "application/json")
+
+		if !report.OverallHealthy {
+			w.WriteHeader(http.StatusServiceUnavailable)
+		} else {
+			w.WriteHeader(http.StatusOK)
+		}
+
+		_ = json.NewEncoder(w).Encode(report)
+	}
+}
 
 // NewServer returns a new preconfigured http.Server.
 func NewServer(ctx context.Context, cfg config.Containable, handler http.Handler) (*http.Server, error) {
@@ -63,22 +81,29 @@ func Start(cfg config.Containable, logger logger.Logger, srv *http.Server) contr
 	cert := cfg.GetString("server.tls.cert")
 	key := cfg.GetString("server.tls.key")
 
-	return func(_ context.Context) error {
-		var err error
+	return func(ctx context.Context) error {
+		var lc net.ListenConfig
 
-		if tlsEnabled {
-			logger.Info("starting http server", "tls", true, "addr", srv.Addr)
-
-			err = srv.ListenAndServeTLS(cert, key)
-		} else {
-			logger.Info("starting http server", "tls", false, "addr", srv.Addr)
-
-			err = srv.ListenAndServe()
+		ln, err := lc.Listen(ctx, "tcp", srv.Addr)
+		if err != nil {
+			return errors.Wrap(err, "failed to listen")
 		}
 
-		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			return errors.Wrap(err, "HTTP server failed")
-		}
+		go func() {
+			var err error
+
+			if tlsEnabled {
+				logger.Info("starting http server", "tls", true, "addr", srv.Addr)
+				err = srv.ServeTLS(ln, cert, key)
+			} else {
+				logger.Info("starting http server", "tls", false, "addr", srv.Addr)
+				err = srv.Serve(ln)
+			}
+
+			if err != nil && !errors.Is(err, http.ErrServerClosed) {
+				logger.Error("HTTP server failed", "error", err)
+			}
+		}()
 
 		return nil
 	}
@@ -107,10 +132,14 @@ func Status(srv *http.Server) controls.StatusFunc {
 }
 
 // Register creates a new HTTP server and registers it with the controller under the given id.
-func Register(ctx context.Context, id string, controller controls.Controllable, cfg config.Containable, logger logger.Logger, handler http.Handler) error {
-	srv, err := NewServer(ctx, cfg, handler)
+func Register(ctx context.Context, id string, controller controls.Controllable, cfg config.Containable, logger logger.Logger, handler http.Handler) (*http.Server, error) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/healthz", HealthHandler(controller))
+	mux.Handle("/", handler)
+
+	srv, err := NewServer(ctx, cfg, mux)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	controller.Register(id,
@@ -119,5 +148,5 @@ func Register(ctx context.Context, id string, controller controls.Controllable, 
 		controls.WithStatus(Status(srv)),
 	)
 
-	return nil
+	return srv, nil
 }

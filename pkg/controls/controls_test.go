@@ -265,3 +265,44 @@ func TestStop_AlreadyStopped(t *testing.T) {
 	c.Stop()
 	assert.True(t, c.IsStopped())
 }
+
+func TestController_Status(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	c := controls.NewController(ctx, controls.WithoutSignals())
+
+	c.Register("healthy-service",
+		controls.WithStart(func(_ context.Context) error { return nil }),
+		controls.WithStop(func(_ context.Context) {}),
+		controls.WithStatus(func() error { return nil }),
+	)
+
+	c.Register("unhealthy-service",
+		controls.WithStart(func(_ context.Context) error { return nil }),
+		controls.WithStop(func(_ context.Context) {}),
+		controls.WithStatus(func() error { return fmt.Errorf("service failed") }),
+	)
+
+	report := c.Status()
+
+	assert.False(t, report.OverallHealthy)
+	assert.Len(t, report.Services, 2)
+
+	var healthy, unhealthy bool
+	for _, s := range report.Services {
+		if s.Name == "healthy-service" {
+			assert.Equal(t, "OK", s.Status)
+			assert.Empty(t, s.Error)
+			healthy = true
+		}
+		if s.Name == "unhealthy-service" {
+			assert.Equal(t, "ERROR", s.Status)
+			assert.Equal(t, "service failed", s.Error)
+			unhealthy = true
+		}
+	}
+	assert.True(t, healthy)
+	assert.True(t, unhealthy)
+}
+
