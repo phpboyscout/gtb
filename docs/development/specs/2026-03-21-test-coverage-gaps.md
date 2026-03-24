@@ -40,8 +40,8 @@ Code review identified several packages with insufficient test coverage. While s
 | `pkg/vcs/gitlab` | Low | HTTP client interactions — needs mock server |
 | `pkg/vcs/release` | Low | Provider abstraction layer — needs interface mocks |
 | `pkg/chat` (providers) | Medium | `Ask()`/`Chat()` paths — needs mock HTTP servers |
-| `pkg/controls/grpc` | Low | gRPC server lifecycle — needs test server setup |
-| `pkg/controls/http` | Low | HTTP server lifecycle — needs `httptest.Server` |
+| `pkg/grpc` | Low | gRPC server lifecycle — needs test server setup |
+| `pkg/http` | Low | HTTP server lifecycle — needs `httptest.Server` |
 | `pkg/docs` | Medium | MkDocs parsing edge cases |
 
 ---
@@ -224,7 +224,7 @@ func TestClaude_Ask_ContextCancelled(t *testing.T) {
 
 Similar patterns for OpenAI and Gemini with their respective API response formats.
 
-### Priority 5: `pkg/controls/grpc` and `pkg/controls/http`
+### Priority 5: `pkg/grpc` and `pkg/http`
 
 ```go
 func TestHTTPServer_StartStop(t *testing.T) {
@@ -293,9 +293,9 @@ pkg/chat/
 ├── openai_test.go         ← MODIFIED: mock API server tests
 ├── gemini_test.go         ← MODIFIED: mock API server tests
 ├── testhelpers_test.go    ← NEW: shared test utilities (mock servers, factories)
-pkg/controls/grpc/
+pkg/grpc/
 ├── grpc_test.go           ← NEW/MODIFIED: server lifecycle tests
-pkg/controls/http/
+pkg/http/
 ├── http_test.go           ← NEW/MODIFIED: server lifecycle tests
 pkg/docs/
 ├── docs_test.go           ← MODIFIED: edge case tests
@@ -312,7 +312,7 @@ pkg/docs/
 | Pure functions | `pkg/version` | Table-driven, no mocks |
 | HTTP clients | `pkg/vcs/gitlab`, `pkg/chat/*` | `httptest.Server` with custom handlers |
 | Abstractions | `pkg/vcs/release` | Interface mocks |
-| Servers | `pkg/controls/grpc`, `pkg/controls/http` | Start/stop lifecycle, port 0 |
+| Servers | `pkg/grpc`, `pkg/http` | Start/stop lifecycle, port 0 |
 | Parsers | `pkg/docs` | Edge cases, malformed input |
 
 ### Shared Test Helpers
@@ -340,8 +340,8 @@ func newTestClaudeClient(t *testing.T, baseURL string) ChatClient {
 | `pkg/vcs/gitlab` | ~20% | 90%+ |
 | `pkg/vcs/release` | ~30% | 90%+ |
 | `pkg/chat` | ~50% | 90%+ |
-| `pkg/controls/grpc` | ~10% | 80%+ |
-| `pkg/controls/http` | ~10% | 80%+ |
+| `pkg/grpc` | ~10% | 80%+ |
+| `pkg/http` | ~10% | 80%+ |
 | `pkg/docs` | ~60% | 90%+ |
 
 ### Coverage
@@ -398,8 +398,8 @@ func newTestClaudeClient(t *testing.T, baseURL string) ChatClient {
 4. Achieve 90%+ coverage
 
 ### Phase 4 — Controls Servers
-1. Add lifecycle tests for `pkg/controls/http`
-2. Add lifecycle tests for `pkg/controls/grpc`
+1. Add lifecycle tests for `pkg/http`
+2. Add lifecycle tests for `pkg/grpc`
 3. Achieve 80%+ coverage
 
 ### Phase 5 — Docs Package

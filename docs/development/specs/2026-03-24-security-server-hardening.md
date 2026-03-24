@@ -66,7 +66,7 @@ server:
     max_header_bytes: 1048576  # Maximum header size in bytes (default: 1MB)
 ```
 
-### Modified: `pkg/controls/grpc/server.go`
+### Modified: `pkg/grpc/server.go`
 
 ```go
 // Before:
@@ -86,7 +86,7 @@ func NewServer(cfg config.Containable) *grpc.Server {
 }
 ```
 
-### Modified: `pkg/controls/http/server.go`
+### Modified: `pkg/http/server.go`
 
 ```go
 // Before:
@@ -118,7 +118,7 @@ srv := &http.Server{
 
 ### 1. Gate gRPC Reflection Behind Config Flag
 
-**File:** `pkg/controls/grpc/server.go:20`
+**File:** `pkg/grpc/server.go:20`
 
 The change is a single conditional wrapping the existing `reflection.Register(srv)` call. The config key `server.grpc.reflection` is read via `cfg.GetBool()`, which returns `false` for unset keys -- making the secure default automatic.
 
@@ -135,7 +135,7 @@ server:
 
 ### 2. Add `MaxHeaderBytes` to HTTP Server
 
-**File:** `pkg/controls/http/server.go`
+**File:** `pkg/http/server.go`
 
 The `MaxHeaderBytes` field is added to the `http.Server` struct literal. The value is read from config with a fallback to 1MB. This protects against header-based memory exhaustion attacks without requiring any application code changes.
 
@@ -181,10 +181,10 @@ The document explains:
 ## Project Structure
 
 ```
-pkg/controls/grpc/
+pkg/grpc/
 ├── server.go          <- MODIFIED: conditional reflection registration
 
-pkg/controls/http/
+pkg/http/
 ├── server.go          <- MODIFIED: add MaxHeaderBytes
 
 docs/development/
@@ -258,12 +258,12 @@ docs/components/commands/
 ## Implementation Phases
 
 ### Phase 1 -- gRPC Reflection Gating
-1. Add conditional check around `reflection.Register(srv)` in `pkg/controls/grpc/server.go`
+1. Add conditional check around `reflection.Register(srv)` in `pkg/grpc/server.go`
 2. Update generator development config template to include `server.grpc.reflection: true`
 3. Add tests for reflection enabled, disabled, and default states
 
 ### Phase 2 -- HTTP MaxHeaderBytes
-1. Add `MaxHeaderBytes` to HTTP server construction in `pkg/controls/http/server.go`
+1. Add `MaxHeaderBytes` to HTTP server construction in `pkg/http/server.go`
 2. Read from `server.http.max_header_bytes` config with 1MB fallback
 3. Add tests for configured, default, and zero-value scenarios
 
@@ -288,18 +288,18 @@ go build ./...
 go test -race ./...
 
 # Specific packages
-go test -race -cover ./pkg/controls/grpc/...
-go test -race -cover ./pkg/controls/http/...
+go test -race -cover ./pkg/grpc/...
+go test -race -cover ./pkg/http/...
 
 # Lint
 golangci-lint run --fix
 
 # Verify reflection is conditional
-grep -rn 'reflection.Register' --include='*.go' pkg/controls/grpc/
+grep -rn 'reflection.Register' --include='*.go' pkg/grpc/
 # Should show the call inside a conditional block
 
 # Verify MaxHeaderBytes is set
-grep -rn 'MaxHeaderBytes' --include='*.go' pkg/controls/http/
+grep -rn 'MaxHeaderBytes' --include='*.go' pkg/http/
 # Should show explicit assignment
 
 # Verify documentation exists

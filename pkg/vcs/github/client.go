@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/http"
 
 	"github.com/cockroachdb/errors"
 	"github.com/google/go-github/v80/github"
 	"github.com/spf13/afero"
 
 	"github.com/phpboyscout/go-tool-base/pkg/config"
+	gtbhttp "github.com/phpboyscout/go-tool-base/pkg/http"
 	"github.com/phpboyscout/go-tool-base/pkg/vcs"
 )
 
@@ -176,8 +176,8 @@ func (c *GHClient) GetReleaseAssetID(ctx context.Context, owner, repo, tag, asse
 	return 0, errors.Newf("asset named '%s' not found in release %s for repo %s/%s", assetName, tag, owner, repo)
 }
 
-func (c *GHClient) DownloadAsset(ctx context.Context, owner, repo string, assetID int64) (io.ReadCloser, error) {
-	rc, _, err := c.Client.Repositories.DownloadReleaseAsset(ctx, owner, repo, assetID, http.DefaultClient)
+func (c *GHClient) DownloadAsset(ctx context.Context, owner string, repo string, assetID int64) (io.ReadCloser, error) {
+	rc, _, err := c.Client.Repositories.DownloadReleaseAsset(ctx, owner, repo, assetID, gtbhttp.NewClient())
 	if err != nil {
 		return nil, errors.Newf("failed to download asset %d from repo %s/%s: %w", assetID, owner, repo, err)
 	}
@@ -219,7 +219,7 @@ func NewGitHubClient(cfg config.Containable) (*GHClient, error) {
 		return nil, errors.New("github configuration is missing")
 	}
 
-	client, err := github.NewClient(nil).WithEnterpriseURLs(
+	client, err := github.NewClient(gtbhttp.NewClient()).WithEnterpriseURLs(
 		cfg.GetString("url.api"),
 		cfg.GetString("url.upload"),
 	)

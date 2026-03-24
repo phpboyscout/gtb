@@ -219,7 +219,7 @@ pkg/controls/
 
 ## Future Considerations
 
-- **gRPC and HTTP servers**: `pkg/controls/grpc` and `pkg/controls/http` could accept `Runner` instead of `Controllable` if they only need lifecycle methods.
+- **gRPC and HTTP servers**: `pkg/grpc` and `pkg/http` could accept `Runner` instead of `Controllable` if they only need lifecycle methods.
 - **Event-driven state**: If state transitions become event-driven, `StateAccessor` is the natural interface to extend.
 
 ---

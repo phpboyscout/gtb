@@ -234,8 +234,8 @@ The document defines three stability tiers:
 |---------|---------------|-------|
 | `pkg/chat` | Chat client interfaces | v0.x |
 | `pkg/cmd/doctor` | Doctor command and check registration | v0.x |
-| `pkg/controls/http` | HTTP server functions | v0.x |
-| `pkg/controls/grpc` | gRPC server functions | v0.x |
+| `pkg/http` | HTTP server functions | v0.x |
+| `pkg/grpc` | gRPC server functions | v0.x |
 
 **Experimental** -- These APIs may change significantly or be removed. Do not depend on them in production code without pinning to a specific version.
 
@@ -275,13 +275,13 @@ All errors use `cockroachdb/errors` for wrapping and stack traces.
 | `ErrControllerAlreadyRunning` | Attempted to start a controller that is already running | Check controller state before starting |
 | `ErrControllerNotRunning` | Attempted to stop a controller that is not running | Check controller state before stopping |
 
-## `pkg/controls/http`
+## `pkg/http`
 
 | Error | Description | Typical Handling |
 |-------|-------------|-----------------|
 | (errors documented here after confirming actual sentinel errors in code) |
 
-## `pkg/controls/grpc`
+## `pkg/grpc`
 
 | Error | Description | Typical Handling |
 |-------|-------------|-----------------|

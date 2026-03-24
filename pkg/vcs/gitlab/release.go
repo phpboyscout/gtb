@@ -9,6 +9,7 @@ import (
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 
 	"github.com/phpboyscout/go-tool-base/pkg/config"
+	gtbhttp "github.com/phpboyscout/go-tool-base/pkg/http"
 	"github.com/phpboyscout/go-tool-base/pkg/vcs"
 	"github.com/phpboyscout/go-tool-base/pkg/vcs/release"
 )
@@ -90,11 +91,13 @@ func NewReleaseProvider(cfg config.Containable) (release.Provider, error) {
 		client *gitlab.Client
 	)
 
+	secureClient := gtbhttp.NewClient()
+
 	if token != "" {
-		client, err = gitlab.NewClient(token, gitlab.WithBaseURL(baseURL))
+		client, err = gitlab.NewClient(token, gitlab.WithBaseURL(baseURL), gitlab.WithHTTPClient(secureClient))
 	} else {
 		// Public client
-		client, err = gitlab.NewClient("", gitlab.WithBaseURL(baseURL))
+		client, err = gitlab.NewClient("", gitlab.WithBaseURL(baseURL), gitlab.WithHTTPClient(secureClient))
 	}
 
 	if err != nil {
@@ -169,7 +172,7 @@ func (p *GitLabReleaseProvider) DownloadReleaseAsset(ctx context.Context, owner,
 		req.Header.Set("PRIVATE-TOKEN", p.token)
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := gtbhttp.NewClient().Do(req)
 	if err != nil {
 		return nil, "", errors.WithStack(err)
 	}

@@ -3,11 +3,11 @@ package github
 import (
 	"context"
 	"io"
-	"net/http"
 
 	"github.com/cockroachdb/errors"
 	"github.com/google/go-github/v80/github"
 
+	gtbhttp "github.com/phpboyscout/go-tool-base/pkg/http"
 	"github.com/phpboyscout/go-tool-base/pkg/vcs/release"
 )
 
@@ -132,7 +132,7 @@ func (p *GitHubReleaseProvider) ListReleases(ctx context.Context, owner, repo st
 }
 
 func (p *GitHubReleaseProvider) DownloadReleaseAsset(ctx context.Context, owner, repo string, asset release.ReleaseAsset) (io.ReadCloser, string, error) {
-	rc, redirectURL, err := p.client.Repositories.DownloadReleaseAsset(ctx, owner, repo, asset.GetID(), http.DefaultClient)
+	rc, redirectURL, err := p.client.Repositories.DownloadReleaseAsset(ctx, owner, repo, asset.GetID(), gtbhttp.NewClient())
 	if err != nil {
 		return nil, "", errors.WithStack(err)
 	}

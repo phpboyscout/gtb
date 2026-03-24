@@ -1,8 +1,8 @@
 ---
 title: "Secure HTTP Client Specification"
-description: "Add a hardened HTTP client factory to pkg/controls/http with security-focused defaults, shared TLS configuration, and migration of all existing bare http.DefaultClient usages."
+description: "Add a hardened HTTP client factory to pkg/http with security-focused defaults, shared TLS configuration, and migration of all existing bare http.DefaultClient usages."
 date: 2026-03-24
-status: DRAFT
+status: IMPLEMENTED
 tags:
   - specification
   - security
@@ -24,13 +24,13 @@ Date
 :   24 March 2026
 
 Status
-:   DRAFT
+:   IMPLEMENTED
 
 ---
 
 ## Overview
 
-Go's default `http.Client{}` has no timeouts, no TLS minimum version, follows redirects unconditionally, and imposes no connection limits. GTB already provides `NewServer()` in `pkg/controls/http` with secure TLS defaults, but there is no equivalent factory for outbound HTTP clients.
+Go's default `http.Client{}` has no timeouts, no TLS minimum version, follows redirects unconditionally, and imposes no connection limits. GTB already provides `NewServer()` in `pkg/http` with secure TLS defaults, but there is no equivalent factory for outbound HTTP clients.
 
 This specification adds a `NewClient()` factory function that mirrors the server's security posture for outbound connections, extracts shared TLS configuration into a reusable module, and migrates all existing usages of `http.DefaultClient` and uninitialised SDK clients across the codebase.
 
@@ -62,7 +62,7 @@ The following security risks exist with the current approach:
 
 ## Public API Changes
 
-### New: `pkg/controls/http.NewClient`
+### New: `pkg/http.NewClient`
 
 ```go
 package http
@@ -98,7 +98,7 @@ func WithTLSConfig(cfg *tls.Config) ClientOption
 func WithTransport(rt http.RoundTripper) ClientOption
 ```
 
-### Modified: `pkg/controls/http` internal structure
+### Modified: `pkg/http` internal structure
 
 The existing TLS configuration in `server.go` is extracted to `tls.go` and shared.
 
@@ -251,7 +251,7 @@ Note: Files importing the new client will use a qualified import alias (e.g., `g
 ## Project Structure
 
 ```
-pkg/controls/http/
+pkg/http/
 ├── tls.go              <- NEW: shared TLS configuration
 ├── tls_test.go         <- NEW: TLS config validation tests
 ├── client.go           <- NEW: secure HTTP client factory
@@ -347,7 +347,7 @@ Each migrated file must have a test confirming the secure client is used. For SD
 
 ### Coverage
 
-- Target: 95%+ for `pkg/controls/http/client.go` and `pkg/controls/http/tls.go`.
+- Target: 95%+ for `pkg/http/client.go` and `pkg/http/tls.go`.
 - Existing `server.go` coverage must not regress.
 
 ---
@@ -374,13 +374,13 @@ Each migrated file must have a test confirming the secure client is used. For SD
 ## Implementation Phases
 
 ### Phase 1 -- Shared TLS Configuration
-1. Create `pkg/controls/http/tls.go` with `defaultTLSConfig()`
+1. Create `pkg/http/tls.go` with `defaultTLSConfig()`
 2. Update `server.go` to use `defaultTLSConfig()`
 3. Add tests verifying server behaviour is unchanged
 4. Verify all existing tests pass
 
 ### Phase 2 -- Client Factory
-1. Create `pkg/controls/http/client.go` with `NewClient` and all options
+1. Create `pkg/http/client.go` with `NewClient` and all options
 2. Implement `redirectPolicy` with scheme downgrade protection
 3. Add comprehensive unit tests for all options and the redirect policy
 4. Add integration tests with `httptest.NewTLSServer`
@@ -404,13 +404,13 @@ go build ./...
 just test
 
 # Targeted tests
-go test -race ./pkg/controls/http/...
+go test -race ./pkg/http/...
 go test -race ./pkg/vcs/github/...
 go test -race ./pkg/vcs/gitlab/...
 go test -race ./pkg/chat/...
 
 # Coverage for new code
-go test -coverprofile=coverage.out ./pkg/controls/http/...
+go test -coverprofile=coverage.out ./pkg/http/...
 go tool cover -func=coverage.out
 
 # Verify no remaining http.DefaultClient usages

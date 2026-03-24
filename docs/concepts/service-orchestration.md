@@ -28,8 +28,8 @@ The `Controller` is the central orchestrator that manages a collection of `Servi
 
 For common server types, GTB provides specialized sub-packages that simplify integration:
 
-- **`pkg/controls/http`**: Standardized HTTP/TLS server with production timeouts and security defaults.
-- **`pkg/controls/grpc`**: Standardized gRPC server with reflection support.
+- **`pkg/http`**: Standardized HTTP/TLS server with production timeouts and security defaults.
+- **`pkg/grpc`**: Standardized gRPC server with reflection support.
 
 These packages provide `Start` and `Stop` functions that return the `StartFunc` and `StopFunc` types required by the `Controller.Register` method.
 

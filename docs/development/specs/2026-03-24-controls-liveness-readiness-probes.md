@@ -78,7 +78,7 @@ func (c *Controller) Liveness() HealthReport
 func (c *Controller) Readiness() HealthReport
 ```
 
-### 4.2 `pkg/controls/http`
+### 4.2 `pkg/http`
 
 Add specific handlers:
 
@@ -87,7 +87,7 @@ func LivenessHandler(controller controls.Controllable) http.HandlerFunc
 func ReadinessHandler(controller controls.Controllable) http.HandlerFunc
 ```
 
-### 4.3 `pkg/controls/grpc`
+### 4.3 `pkg/grpc`
 
 The gRPC health protocol supports a "service" string. We can map these:
 - Service `""` (empty): Aggregate Status
@@ -114,10 +114,10 @@ Implementation must follow the **Test-Driven Development (TDD)** approach.
     - Verify `WithLiveness` and `WithReadiness` options correctly populate the `Service` struct.
     - Test `Liveness()` and `Readiness()` methods on `Controller` with mixed service states.
     - Verify fallback logic (Liveness/Readiness falling back to Status if not provided).
-- **Package `pkg/controls/http`**:
+- **Package `pkg/http`**:
     - Test `LivenessHandler` and `ReadinessHandler` independently.
     - Assert correct status codes and JSON payloads for various scenarios.
-- **Package `pkg/controls/grpc`**:
+- **Package `pkg/grpc`**:
     - Verify gRPC health service returns correct status for named services `"liveness"` and `"readiness"`.
 
 ### 6.2 Integration Tests
@@ -149,7 +149,7 @@ Implementation MUST leverage:
 - Implement `Liveness()` and `Readiness()` methods on `Controller`.
 
 ### Phase 2: HTTP Integration
-- Add handlers to `pkg/controls/http`.
+- Add handlers to `pkg/http`.
 
 ### Phase 3: gRPC Integration
 - Update gRPC health service to handle named sub-services.

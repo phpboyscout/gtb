@@ -18,6 +18,7 @@ import (
 	"golang.org/x/text/language"
 
 	"github.com/phpboyscout/go-tool-base/pkg/logger"
+	gtbhttp "github.com/phpboyscout/go-tool-base/pkg/http"
 	"github.com/google/go-github/v80/github"
 	mockRelease "github.com/phpboyscout/go-tool-base/mocks/pkg/vcs/release"
 	"github.com/phpboyscout/go-tool-base/pkg/props"
@@ -94,7 +95,7 @@ func TestUpdate_Success(t *testing.T) {
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
-	client := github.NewClient(nil)
+	client := github.NewClient(gtbhttp.NewClient())
 	baseURL, _ := nurl.Parse(server.URL + "/")
 	client.BaseURL = baseURL
 	client.UploadURL = baseURL

@@ -9,6 +9,7 @@ import (
 	"github.com/invopop/jsonschema"
 	"google.golang.org/genai"
 
+	gtbhttp "github.com/phpboyscout/go-tool-base/pkg/http"
 	"github.com/phpboyscout/go-tool-base/pkg/props"
 )
 
@@ -38,7 +39,10 @@ func newGemini(ctx context.Context, p *props.Props, cfg Config) (ChatClient, err
 		return nil, errors.New("Gemini API key is required")
 	}
 
-	client, err := genai.NewClient(ctx, &genai.ClientConfig{APIKey: token})
+	client, err := genai.NewClient(ctx, &genai.ClientConfig{
+		APIKey:     token,
+		HTTPClient: gtbhttp.NewClient(),
+	})
 	if err != nil {
 		return nil, errors.Newf("failed to create gemini client: %w", err)
 	}

@@ -70,7 +70,7 @@ server:
   port: 8080  # retained as fallback default for backwards compatibility
 ```
 
-### Modified: `pkg/controls/http/server.go`
+### Modified: `pkg/http/server.go`
 
 ```go
 // Before:
@@ -117,7 +117,7 @@ func Status(srv *grpc.Server) controls.StatusFunc {
 ### Removed: `ErrUnableToParseSpec`
 
 ```go
-// Removed from pkg/controls/http/server.go if confirmed unused:
+// Removed from pkg/http/server.go if confirmed unused:
 var ErrUnableToParseSpec = errors.New("unable to parse spec")
 ```
 
@@ -157,7 +157,7 @@ The `go/version` package understands Go's version numbering scheme where `go1.22
 
 ### 2. Remove Deprecated `PreferServerCipherSuites`
 
-**File:** `pkg/controls/http/server.go:43`
+**File:** `pkg/http/server.go:43`
 
 ```go
 // Before:
@@ -176,7 +176,7 @@ TLSConfig: &tls.Config{
 
 ### 3. Wire Unused `ctx` in HTTP `NewServer`
 
-**File:** `pkg/controls/http/server.go:28`
+**File:** `pkg/http/server.go:28`
 
 ```go
 // Before:
@@ -205,7 +205,7 @@ This ensures the parent context is available to all HTTP handlers via `r.Context
 
 ### 4. Implement `Status()` Functions
 
-**File:** `pkg/controls/http/server.go:97`
+**File:** `pkg/http/server.go:97`
 
 ```go
 // After:
@@ -219,7 +219,7 @@ func Status(srv *http.Server) controls.StatusFunc {
 }
 ```
 
-**File:** `pkg/controls/grpc/server.go:56`
+**File:** `pkg/grpc/server.go:56`
 
 ```go
 // After:
@@ -302,7 +302,7 @@ func checkPermissions(configDir string) error {
 
 ### 7. Separate HTTP/gRPC Port Config Keys
 
-**File:** `pkg/controls/http/server.go:29`
+**File:** `pkg/http/server.go:29`
 
 ```go
 // Before:
@@ -316,7 +316,7 @@ if port == 0 {
 Addr: fmt.Sprintf(":%d", port),
 ```
 
-**File:** `pkg/controls/grpc/server.go:27`
+**File:** `pkg/grpc/server.go:27`
 
 ```go
 // Before:
@@ -332,7 +332,7 @@ lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 
 ### 8. Remove Unused `ErrUnableToParseSpec`
 
-**File:** `pkg/controls/http/server.go:18`
+**File:** `pkg/http/server.go:18`
 
 Before removal, confirm the error is unused:
 
@@ -397,7 +397,7 @@ c.logger.Errorf("error from %s: %v", name, err)
 c.logger.Error("control error", "control", name, "error", err)
 ```
 
-**File:** `pkg/controls/http/server.go:91`
+**File:** `pkg/http/server.go:91`
 
 ```go
 // Before:
@@ -420,12 +420,12 @@ pkg/cmd/doctor/
 pkg/controls/
 ├── controller.go      <- MODIFIED: add goroutine exit path, structured logging
 
-pkg/controls/http/
+pkg/http/
 ├── server.go          <- MODIFIED: remove PreferServerCipherSuites, wire ctx,
 │                         implement Status(), separate port config, remove unused
 │                         error, structured logging
 
-pkg/controls/grpc/
+pkg/grpc/
 ├── server.go          <- MODIFIED: implement Status(), separate port config
 
 pkg/setup/
@@ -545,8 +545,8 @@ go test -race ./...
 # Specific packages
 go test -race -cover ./pkg/cmd/doctor/...
 go test -race -cover ./pkg/controls/...
-go test -race -cover ./pkg/controls/http/...
-go test -race -cover ./pkg/controls/grpc/...
+go test -race -cover ./pkg/http/...
+go test -race -cover ./pkg/grpc/...
 
 # Lint
 golangci-lint run --fix
@@ -564,6 +564,6 @@ grep -rn 'ErrUnableToParseSpec' --include='*.go' pkg/ internal/
 # Should return no results
 
 # Verify shared server.port is not the sole config key
-grep -rn '"server\.port"' --include='*.go' pkg/controls/http/ pkg/controls/grpc/
+grep -rn '"server\.port"' --include='*.go' pkg/http/ pkg/grpc/
 # Should only appear in fallback logic
 ```

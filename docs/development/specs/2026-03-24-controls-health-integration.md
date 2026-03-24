@@ -34,16 +34,16 @@ This specification proposes adding standardized health check handlers for HTTP a
 
 Currently, each service registered with the `Controller` has a `StatusFunc`, but:
 1. There is no public API on the `Controller` to aggregate these statuses into a single report.
-2. HTTP servers created via `pkg/controls/http` do not automatically provide a `/healthz` endpoint.
-3. gRPC servers created via `pkg/controls/grpc` do not implement the standard gRPC Health Checking Protocol.
+2. HTTP servers created via `pkg/http` do not automatically provide a `/healthz` endpoint.
+3. gRPC servers created via `pkg/grpc` do not implement the standard gRPC Health Checking Protocol.
 4. Consumers have to manually wire up health checks, leading to inconsistency.
 
 ## 3. Goals & Non-Goals
 
 ### Goals
 - Add a public `Status()` method to `Controller` to aggregate service health.
-- Provide a standard `/healthz` HTTP handler in `pkg/controls/http`.
-- Integrate the standard gRPC Health Checking Protocol in `pkg/controls/grpc`.
+- Provide a standard `/healthz` HTTP handler in `pkg/http`.
+- Integrate the standard gRPC Health Checking Protocol in `pkg/grpc`.
 - Ensure health checks are non-blocking and do not cause service disruption.
 - Automate the registration of these health checks where possible (transparently).
 
@@ -74,7 +74,7 @@ type HealthReport struct {
 func (c *Controller) Status() HealthReport
 ```
 
-### 4.2 `pkg/controls/http`
+### 4.2 `pkg/http`
 
 Add a health handler:
 
@@ -86,7 +86,7 @@ func HealthHandler(controller controls.Controllable) http.HandlerFunc
 
 Update `Register` to optionally (or by default) include the health endpoint.
 
-### 4.3 `pkg/controls/grpc`
+### 4.3 `pkg/grpc`
 
 Add a health service registration helper:
 
@@ -113,8 +113,8 @@ Using `google.golang.org/grpc/health`, we will implement a periodic or on-demand
 ## 6. Project Structure
 
 - `pkg/controls/controller.go`: Implementation of `Status()`.
-- `pkg/controls/http/handlers.go`: New file for health handlers.
-- `pkg/controls/grpc/health.go`: New file for gRPC health service integration.
+- `pkg/http/handlers.go`: New file for health handlers.
+- `pkg/grpc/health.go`: New file for gRPC health service integration.
 
 ## 7. Error Handling
 
@@ -132,11 +132,11 @@ Implementation must follow the **Test-Driven Development (TDD)** approach as def
         - One or more services returning errors (returns `overall_healthy: false`).
         - Services with `nil` `StatusFunc` (should be treated as healthy by default or handled gracefully).
     - Verify thread-safety of `Status()` when called concurrently with service start/stop.
-- **Package `pkg/controls/http`**:
+- **Package `pkg/http`**:
     - Test `HealthHandler` with mock controllers.
     - Assert correct HTTP status codes (200 for healthy, 503 for unhealthy).
     - Assert JSON response body matches the `HealthReport` structure.
-- **Package `pkg/controls/grpc`**:
+- **Package `pkg/grpc`**:
     - Test gRPC health service integration using `grpc_health_v1`.
     - Verify `Check` returns `SERVING` or `NOT_SERVING` based on controller status.
 

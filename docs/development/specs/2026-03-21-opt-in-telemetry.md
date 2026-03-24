@@ -274,9 +274,7 @@ type httpBackend struct {
 func NewHTTPBackend(endpoint string) Backend {
     return &httpBackend{
         endpoint: endpoint,
-        client: &http.Client{
-            Timeout: 5 * time.Second, // short timeout — don't slow down CLI
-        },
+        client:   http.NewClient(http.WithTimeout(5 * time.Second)),
     }
 }
 

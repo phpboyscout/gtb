@@ -561,10 +561,10 @@ pkg/controls/
 ├── controls.go        ← MODIFIED: interface logger types
 ├── controller.go      ← MODIFIED: logger field type
 
-pkg/controls/http/
+pkg/http/
 ├── server.go          ← MODIFIED: logger param type
 
-pkg/controls/grpc/
+pkg/grpc/
 ├── server.go          ← MODIFIED: logger param type
 
 pkg/errorhandling/
