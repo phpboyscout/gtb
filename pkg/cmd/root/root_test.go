@@ -19,6 +19,7 @@ import (
 	"github.com/phpboyscout/go-tool-base/pkg/config"
 	"github.com/phpboyscout/go-tool-base/pkg/logger"
 	p "github.com/phpboyscout/go-tool-base/pkg/props"
+	"github.com/phpboyscout/go-tool-base/pkg/setup"
 )
 
 // root_test.go provides comprehensive unit tests for the extracted functions in root.go
@@ -26,6 +27,8 @@ import (
 // functionality that was extracted from the PersistentPreRunE function for better testability.
 
 func TestExtractFlags(t *testing.T) {
+	setup.ResetRegistryForTesting()
+	t.Cleanup(setup.ResetRegistryForTesting)
 	t.Parallel()
 
 	tests := []struct {
@@ -127,6 +130,8 @@ func TestExtractFlags(t *testing.T) {
 }
 
 func TestLoadAndMergeConfig(t *testing.T) {
+	setup.ResetRegistryForTesting()
+	t.Cleanup(setup.ResetRegistryForTesting)
 	t.Parallel()
 
 	l := logger.NewNoop()
@@ -265,6 +270,8 @@ database:
 // TestLoadAndMergeConfigWithOverrides tests that main config values override embedded config values
 // when both configs contain the same keys. This proves that cfg values take precedence over embeddedCfg.
 func TestLoadAndMergeConfigWithOverrides(t *testing.T) {
+	setup.ResetRegistryForTesting()
+	t.Cleanup(setup.ResetRegistryForTesting)
 	t.Parallel()
 
 	l := logger.NewNoop()
@@ -450,6 +457,8 @@ plugins:
 }
 
 func TestConfigureLogging(t *testing.T) {
+	setup.ResetRegistryForTesting()
+	t.Cleanup(setup.ResetRegistryForTesting)
 	t.Parallel()
 
 	tests := []struct {
@@ -552,6 +561,8 @@ func TestConfigureLogging(t *testing.T) {
 }
 
 func TestShouldSkipUpdateCheck(t *testing.T) {
+	setup.ResetRegistryForTesting()
+	t.Cleanup(setup.ResetRegistryForTesting)
 	tests := []struct {
 		name         string
 		toolDisabled []p.FeatureCmd
@@ -649,6 +660,8 @@ func TestShouldSkipUpdateCheck(t *testing.T) {
 }
 
 func TestCreateUpdatePromptForm(t *testing.T) {
+	setup.ResetRegistryForTesting()
+	t.Cleanup(setup.ResetRegistryForTesting)
 	t.Parallel()
 
 	tests := []struct {
@@ -682,6 +695,8 @@ func TestCreateUpdatePromptForm(t *testing.T) {
 }
 
 func TestHandleOutdatedVersion_WithMockForm(t *testing.T) {
+	setup.ResetRegistryForTesting()
+	t.Cleanup(setup.ResetRegistryForTesting)
 	t.Parallel()
 
 	tests := []struct {
@@ -735,6 +750,8 @@ func TestHandleOutdatedVersion_WithMockForm(t *testing.T) {
 }
 
 func TestWithFormOption(t *testing.T) {
+	setup.ResetRegistryForTesting()
+	t.Cleanup(setup.ResetRegistryForTesting)
 	t.Parallel()
 
 	// Test that the WithForm option correctly sets the form creator
@@ -763,6 +780,8 @@ func TestWithFormOption(t *testing.T) {
 }
 
 func TestRootState_Isolation(t *testing.T) {
+	setup.ResetRegistryForTesting()
+	t.Cleanup(setup.ResetRegistryForTesting)
 	t.Parallel()
 
 	// Two independent root commands should have independent state
@@ -792,6 +811,8 @@ func TestRootState_Isolation(t *testing.T) {
 }
 
 func TestRootState_DefaultFormCreator(t *testing.T) {
+	setup.ResetRegistryForTesting()
+	t.Cleanup(setup.ResetRegistryForTesting)
 	t.Parallel()
 
 	state := newRootState()
@@ -800,6 +821,8 @@ func TestRootState_DefaultFormCreator(t *testing.T) {
 }
 
 func TestErrUpdateComplete(t *testing.T) {
+	setup.ResetRegistryForTesting()
+	t.Cleanup(setup.ResetRegistryForTesting)
 	t.Parallel()
 
 	// ErrUpdateComplete should be detectable via errors.Is
@@ -812,6 +835,8 @@ func TestErrUpdateComplete(t *testing.T) {
 }
 
 func TestHandleOutdatedVersion_SetsStateFlag(t *testing.T) {
+	setup.ResetRegistryForTesting()
+	t.Cleanup(setup.ResetRegistryForTesting)
 	t.Parallel()
 
 	state := newRootState()
@@ -834,4 +859,91 @@ func TestHandleOutdatedVersion_SetsStateFlag(t *testing.T) {
 	// User declined, so redirectingToUpdate should remain false
 	assert.False(t, state.redirectingToUpdate)
 	assert.False(t, result.HasUpdated)
+}
+
+func TestMiddleware_IntegrationWithCobra(t *testing.T) {
+	setup.ResetRegistryForTesting()
+	t.Cleanup(setup.ResetRegistryForTesting)
+	t.Parallel()
+
+	var executed bool
+	cmd := &cobra.Command{
+		Use: "test",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			executed = true
+			return nil
+		},
+	}
+
+	setup.RegisterGlobalMiddleware(setup.WithRecovery(logger.NewNoop()))
+
+	cmd.RunE = setup.Chain(p.UpdateCmd, cmd.RunE)
+	err := cmd.RunE(cmd, nil)
+
+	assert.NoError(t, err)
+	assert.True(t, executed)
+}
+
+func TestNewCmdRoot_SubcommandsHaveMiddleware(t *testing.T) {
+	setup.ResetRegistryForTesting()
+	t.Cleanup(setup.ResetRegistryForTesting)
+
+	var middlewareExecuted bool
+	mw := func(next func(cmd *cobra.Command, args []string) error) func(cmd *cobra.Command, args []string) error {
+		return func(cmd *cobra.Command, args []string) error {
+			middlewareExecuted = true
+			return next(cmd, args)
+		}
+	}
+
+	// 1. Register global middleware
+	setup.RegisterGlobalMiddleware(mw)
+
+	var subcommandExecuted bool
+	subcmd := &cobra.Command{
+		Use: "sub",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			subcommandExecuted = true
+			return nil
+		},
+	}
+
+	props := &p.Props{
+		Logger: logger.NewNoop(),
+		FS:     afero.NewMemMapFs(),
+		Assets: p.NewAssets(),
+		Tool: p.Tool{
+			Name: "test",
+		},
+	}
+
+	// 2. Create root with subcommand - this calls registerFeatureCommands which seals the registry
+	// and should now correctly wrap the passed subcommands.
+	rootCmd := NewCmdRoot(props, subcmd)
+
+	// 3. Execute the subcommand directly via RunE
+	err := subcmd.RunE(subcmd, nil)
+
+	assert.NoError(t, err)
+	assert.True(t, subcommandExecuted, "subcommand should have executed")
+	assert.True(t, middlewareExecuted, "middleware should have executed for subcommand passed to constructor")
+
+	// 4. Test manual registration after root creation
+	middlewareExecuted = false
+	subcommandExecuted = false
+	manualSubcmd := &cobra.Command{
+		Use: "manual",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			subcommandExecuted = true
+			return nil
+		},
+	}
+
+	// Using the new public helper
+	setup.AddCommandWithMiddleware(rootCmd, manualSubcmd, "")
+
+	err = manualSubcmd.RunE(manualSubcmd, nil)
+	assert.NoError(t, err)
+	assert.True(t, subcommandExecuted)
+	assert.True(t, middlewareExecuted, "middleware should have executed for manually registered subcommand")
 }

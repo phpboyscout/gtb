@@ -23,6 +23,9 @@ The setup package implements three core functionalities:
 **Version Management**
 : Semantic version comparison utilities and development version detection for proper update handling.
 
+**Command Middleware**
+: A functional chain pattern for injecting cross-cutting concerns (auth, timing, recovery) into CLI commands.
+
 ## Quick Start
 
 Initialize a new tool configuration:
@@ -184,6 +187,19 @@ version := FormatVersionString("1.2.3", true)  // "v1.2.3"
 // Remove v prefix
 version := FormatVersionString("v1.2.3", false) // "1.2.3"
 ```
+
+## Command Middleware
+
+The Setup package provides a comprehensive middleware system for wrapping CLI commands with cross-cutting concerns.
+
+*   **Conceptual Overview**: For a high-level understanding of how middleware works in GTB, see [Command Middleware Concept Documentation](../../concepts/command-middleware.md).
+*   **Technical Reference**: For the full API and built-in middleware details, see [Command Middleware Technical Reference](middleware.md).
+
+### Core Features
+- **Functional Chain Pattern**: Middleware "wraps" the execution, allowing for logic before and after the command runs.
+- **Global & Feature Scopes**: Register middleware globally for all commands, or specifically for a feature.
+- **Built-ins**: Includes `WithTiming`, `WithRecovery` (panic protection), and `WithAuthCheck` (config validation).
+- **Thread-Safe Registry**: Secure registration during initialization with a "sealing" mechanism to prevent runtime modifications.
 
 ## Configuration Management
 

@@ -88,6 +88,17 @@ func (g *Generator) regenerateProjectFiles(ctx context.Context) error {
 	g.props.Logger.Info("Regenerating project from manifest...")
 	g.props.Logger.Debugf("Manifest: %s, %d top-level commands", m.Properties.Name, len(m.Commands))
 
+	// If the flag was provided, update all commands in the manifest
+	if g.config.WrapSubcommandsWithMiddleware != nil {
+		updateWrapSubcommandsRecursive(&m.Commands, *g.config.WrapSubcommandsWithMiddleware)
+
+		// Save updated manifest
+		updated, err := yaml.Marshal(m)
+		if err == nil {
+			_ = afero.WriteFile(g.props.FS, manifestPath, updated, DefaultFileMode)
+		}
+	}
+
 	if err := g.regenerateRootCommand(m); err != nil {
 		return err
 	}
@@ -411,4 +422,13 @@ func (g *Generator) persistProjectHashes(hashes map[string]string) error {
 	}
 
 	return nil
+}
+
+// updateWrapSubcommandsRecursive sets the WrapSubcommandsWithMiddleware flag
+// for all commands in the tree.
+func updateWrapSubcommandsRecursive(commands *[]ManifestCommand, value bool) {
+	for i := range *commands {
+		(*commands)[i].WrapSubcommandsWithMiddleware = value
+		updateWrapSubcommandsRecursive(&(*commands)[i].Commands, value)
+	}
 }

@@ -20,6 +20,12 @@ A conceptual translation guide if you're coming to Go from Laravel, Rails, or Dj
 ### [Scaffolding a New CLI](new-cli.md)
 Get up and running in seconds using the `gtb` CLI generator.
 
+### [Using Command Middleware](use-middleware.md)
+Add cross-cutting concerns like logging and auth checks to your command tree.
+
+### [Implementing Custom Middleware](custom-middleware.md)
+A hands-on guide to creating and registering your own domain-specific middleware.
+
 ### [Configuring Built-in Features](builtin-features.md)
 How to toggle and tune framework features like Self-Updates, MCP, and AI documentation.
 

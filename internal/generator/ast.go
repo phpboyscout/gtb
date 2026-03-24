@@ -31,6 +31,7 @@ type subcommandContext struct {
 	firstAllAssetsIdx    int
 	subCmdVar            string
 	funcNameToBeCalled   string
+	wrapSubcommands      bool
 	registered           bool
 }
 
@@ -57,7 +58,7 @@ func (g *Generator) registerSubcommand() error {
 	}
 
 	g.props.Logger.Debugf("Adding import for %s", ctx.importPath)
-	g.addSubcommandImport(f, ctx.importPath)
+	g.addSubcommandImport(f, ctx.importPath, ctx)
 
 	targetFunc, err := g.findSubcommandTargetFunction(f, ctx.parentName, ctx.parentFile)
 	if err != nil {
@@ -125,7 +126,37 @@ func (g *Generator) prepareSubcommandContext() (*subcommandContext, error) {
 	ctx.subCmdVar = ctx.pkgName + "Cmd"
 	ctx.funcNameToBeCalled = "NewCmd" + PascalCase(g.config.Name)
 
+	// Determine if we should wrap subcommands with middleware
+	ctx.wrapSubcommands = g.shouldWrapSubcommands(parentParts)
+
 	return ctx, nil
+}
+
+func (g *Generator) shouldWrapSubcommands(parentParts []string) bool {
+	manifestPath := filepath.Join(g.config.Path, ".gtb", "manifest.yaml")
+
+	data, err := afero.ReadFile(g.props.FS, manifestPath)
+	if err != nil {
+		return true // Default to true if manifest is missing (unlikely here)
+	}
+
+	var m Manifest
+	if err := yaml.Unmarshal(data, &m); err != nil {
+		return true
+	}
+
+	if len(parentParts) == 0 {
+		// Root command - it always uses NewCmdRoot which handles wrapping
+		return true
+	}
+
+	// For nested commands, find the parent in the manifest
+	parent := findCommandByPath(m.Commands, parentParts)
+	if parent == nil {
+		return true
+	}
+
+	return parent.WrapSubcommandsWithMiddleware
 }
 
 func (g *Generator) calculateManifestCapacity() int {
@@ -161,16 +192,35 @@ func (g *Generator) fallbackParentFile(relPath, name string, isRoot bool) string
 	return filepath.Join(g.config.Path, relPath, name+".go")
 }
 
-func (g *Generator) addSubcommandImport(f *dst.File, path string) {
+func (g *Generator) addSubcommandImport(f *dst.File, path string, ctx *subcommandContext) {
 	importPath := fmt.Sprintf("\"%s\"", path)
+	setupPath := "\"github.com/phpboyscout/go-tool-base/pkg/setup\""
 
+	hasImport := g.hasImport(f, importPath)
+	hasSetup := g.hasImport(f, setupPath)
+
+	lastImportDecl := g.findLastImportDecl(f)
+
+	if lastImportDecl != nil {
+		g.appendImportsToDecl(lastImportDecl, importPath, setupPath, hasImport, hasSetup, ctx.wrapSubcommands)
+
+		return
+	}
+
+	g.createNewImportBlock(f, importPath, setupPath, ctx.wrapSubcommands)
+}
+
+func (g *Generator) hasImport(f *dst.File, path string) bool {
 	for _, imp := range f.Imports {
-		if imp.Path.Value == importPath {
-			return
+		if imp.Path.Value == path {
+			return true
 		}
 	}
 
-	// Find the last import declaration to append to
+	return false
+}
+
+func (g *Generator) findLastImportDecl(f *dst.File) *dst.GenDecl {
 	var lastImportDecl *dst.GenDecl
 
 	for _, decl := range f.Decls {
@@ -179,23 +229,39 @@ func (g *Generator) addSubcommandImport(f *dst.File, path string) {
 		}
 	}
 
-	if lastImportDecl != nil {
-		// Append to existing import block
-		lastImportDecl.Specs = append(lastImportDecl.Specs, &dst.ImportSpec{
+	return lastImportDecl
+}
+
+func (g *Generator) appendImportsToDecl(decl *dst.GenDecl, importPath, setupPath string, hasImport, hasSetup, wrapSubcommands bool) {
+	if !hasImport {
+		decl.Specs = append(decl.Specs, &dst.ImportSpec{
 			Path: &dst.BasicLit{Kind: token.STRING, Value: importPath},
 		})
-
-		return
 	}
 
-	// Create new import block if none exists
-	f.Decls = append([]dst.Decl{&dst.GenDecl{
-		Tok: token.IMPORT,
-		Specs: []dst.Spec{
-			&dst.ImportSpec{
-				Path: &dst.BasicLit{Kind: token.STRING, Value: importPath},
-			},
+	if wrapSubcommands && !hasSetup {
+		decl.Specs = append(decl.Specs, &dst.ImportSpec{
+			Path: &dst.BasicLit{Kind: token.STRING, Value: setupPath},
+		})
+	}
+}
+
+func (g *Generator) createNewImportBlock(f *dst.File, importPath, setupPath string, wrapSubcommands bool) {
+	specs := []dst.Spec{
+		&dst.ImportSpec{
+			Path: &dst.BasicLit{Kind: token.STRING, Value: importPath},
 		},
+	}
+
+	if wrapSubcommands {
+		specs = append(specs, &dst.ImportSpec{
+			Path: &dst.BasicLit{Kind: token.STRING, Value: setupPath},
+		})
+	}
+
+	f.Decls = append([]dst.Decl{&dst.GenDecl{
+		Tok:   token.IMPORT,
+		Specs: specs,
 	}}, f.Decls...)
 }
 
@@ -490,6 +556,7 @@ func (g *Generator) applySubcommandRegistration(f *dst.File, fn *dst.FuncDecl, c
 
 func (g *Generator) createRegistrationStmts(ctx *subcommandContext) dst.Stmt {
 	// Create: cmd.AddCommand(pkg.NewCmdName(props))
+	// OR: setup.AddCommandWithMiddleware(cmd, pkg.NewCmdName(props), feature)
 
 	// pkg.NewCmdName(props)
 	newCmdCall := &dst.CallExpr{
@@ -500,15 +567,37 @@ func (g *Generator) createRegistrationStmts(ctx *subcommandContext) dst.Stmt {
 		Args: []dst.Expr{dst.NewIdent(ctx.propsVarName)},
 	}
 
-	// cmd.AddCommand(...)
-	addCmdStmt := &dst.ExprStmt{
-		X: &dst.CallExpr{
+	var callExpr *dst.CallExpr
+
+	if ctx.wrapSubcommands {
+		// setup.AddCommandWithMiddleware(cmd, pkg.NewCmdName(props), feature)
+		callExpr = &dst.CallExpr{
+			Fun: &dst.SelectorExpr{
+				X:   dst.NewIdent("setup"),
+				Sel: dst.NewIdent("AddCommandWithMiddleware"),
+			},
+			Args: []dst.Expr{
+				dst.NewIdent(ctx.cmdVarName),
+				newCmdCall,
+				&dst.SelectorExpr{
+					X:   dst.NewIdent("props"),
+					Sel: dst.NewIdent(PascalCase(g.config.Name) + "Cmd"),
+				},
+			},
+		}
+	} else {
+		// cmd.AddCommand(...)
+		callExpr = &dst.CallExpr{
 			Fun: &dst.SelectorExpr{
 				X:   dst.NewIdent(ctx.cmdVarName),
 				Sel: dst.NewIdent("AddCommand"),
 			},
 			Args: []dst.Expr{newCmdCall},
-		},
+		}
+	}
+
+	addCmdStmt := &dst.ExprStmt{
+		X: callExpr,
 	}
 
 	// Ensure newline before AddCommand

@@ -20,29 +20,30 @@ const (
 )
 
 type Config struct {
-	Agentless        bool
-	AIModel          string
-	AIProvider       string
-	Aliases          []string
-	Args             string
-	DryRun           bool
-	Flags            []string
-	Force            bool
-	Hidden           bool
-	Overwrite        string // allow, deny, or ask (default ask)
-	Long             string
-	Name             string
-	Parent           string
-	Path             string
-	PersistentPreRun bool
-	PreRun           bool
-	Prompt           string
-	Protected        *bool
-	ScriptPath       string
-	Short            string
-	UpdateDocs       bool
-	WithAssets       bool
-	WithInitializer  bool
+	Agentless                     bool
+	AIModel                       string
+	AIProvider                    string
+	Aliases                       []string
+	Args                          string
+	DryRun                        bool
+	Flags                         []string
+	Force                         bool
+	Hidden                        bool
+	Overwrite                     string // allow, deny, or ask (default ask)
+	Long                          string
+	Name                          string
+	Parent                        string
+	Path                          string
+	PersistentPreRun              bool
+	PreRun                        bool
+	Prompt                        string
+	Protected                     *bool
+	ScriptPath                    string
+	Short                         string
+	UpdateDocs                    bool
+	WithAssets                    bool
+	WithInitializer               bool
+	WrapSubcommandsWithMiddleware *bool
 }
 
 type CommandFlag struct {

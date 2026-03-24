@@ -2,7 +2,7 @@
 title: "Command Middleware System Specification"
 description: "Add a middleware chain pattern to the feature registry, enabling cross-cutting concerns like auth checks, telemetry, timing, and error recovery to be registered as pre/post hooks on commands."
 date: 2026-03-24
-status: DRAFT
+status: IMPLEMENTED
 tags:
   - specification
   - middleware
@@ -24,7 +24,7 @@ Date
 :   24 March 2026
 
 Status
-:   DRAFT
+:   IMPLEMENTED
 
 ---
 

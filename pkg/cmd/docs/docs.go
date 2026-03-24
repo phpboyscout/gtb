@@ -10,6 +10,7 @@ import (
 	docslib "github.com/phpboyscout/go-tool-base/pkg/docs"
 	"github.com/phpboyscout/go-tool-base/pkg/logger"
 	"github.com/phpboyscout/go-tool-base/pkg/props"
+	"github.com/phpboyscout/go-tool-base/pkg/setup"
 )
 
 func NewCmdDocs(p *props.Props) *cobra.Command {
@@ -51,11 +52,11 @@ func NewCmdDocs(p *props.Props) *cobra.Command {
 	}
 	cmd.PersistentFlags().StringVar(&provider, "provider", "", "AI provider to use (openai, claude, gemini)")
 
-	cmd.AddCommand(NewCmdDocsAsk(p))
+	setup.AddCommandWithMiddleware(cmd, NewCmdDocsAsk(p), props.DocsCmd)
 
 	// Only add serve command if the static site exists
 	if sfs, err := p.Assets.Exists("assets/site"); err == nil {
-		cmd.AddCommand(NewCmdDocsServe(p, sfs))
+		setup.AddCommandWithMiddleware(cmd, NewCmdDocsServe(p, sfs), props.DocsCmd)
 	}
 
 	return cmd

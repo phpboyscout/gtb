@@ -321,7 +321,7 @@ func NewCmdRootWithConfig(props *p.Props, configPaths []string, subcommands ...*
 	registerFeatureCommands(rootCmd, props, mcpLogLevel)
 
 	for _, subcommand := range subcommands {
-		rootCmd.AddCommand(subcommand)
+		setup.AddCommandWithMiddleware(rootCmd, subcommand, "")
 	}
 
 	return rootCmd
@@ -402,32 +402,42 @@ func setupRootFlags(rootCmd *cobra.Command, props *p.Props, state *rootState) {
 }
 
 func registerFeatureCommands(rootCmd *cobra.Command, props *p.Props, mcpLogLevel *slog.LevelVar) {
-	rootCmd.AddCommand(version.NewCmdVersion(props))
+	// Register global middleware
+	setup.RegisterGlobalMiddleware(
+		setup.WithRecovery(props.Logger),
+		setup.WithTiming(props.Logger),
+	)
+
+	// Seal the middleware registry to prevent modifications after initialization
+	setup.Seal()
+
+	setup.AddCommandWithMiddleware(rootCmd, version.NewCmdVersion(props), "")
 
 	if props.Tool.IsEnabled(p.UpdateCmd) {
-		rootCmd.AddCommand(update.NewCmdUpdate(props))
+		setup.AddCommandWithMiddleware(rootCmd, update.NewCmdUpdate(props), p.UpdateCmd)
 	}
 
 	if props.Tool.IsEnabled(p.InitCmd) {
-		rootCmd.AddCommand(initialise.NewCmdInit(props))
+		setup.AddCommandWithMiddleware(rootCmd, initialise.NewCmdInit(props), p.InitCmd)
 	}
 
 	if props.Tool.IsEnabled(p.McpCmd) {
-		rootCmd.AddCommand(ophis.Command(&ophis.Config{
+		mcpCmd := ophis.Command(&ophis.Config{
 			SloggerOptions: &slog.HandlerOptions{
 				Level: mcpLogLevel,
 			},
-		}))
+		})
+		setup.AddCommandWithMiddleware(rootCmd, mcpCmd, p.McpCmd)
 	}
 
 	if props.Tool.IsEnabled(p.DocsCmd) {
 		if docsCmd := docs.NewCmdDocs(props); docsCmd != nil {
-			rootCmd.AddCommand(docsCmd)
+			setup.AddCommandWithMiddleware(rootCmd, docsCmd, p.DocsCmd)
 		}
 	}
 
 	if props.Tool.IsEnabled(p.DoctorCmd) {
-		rootCmd.AddCommand(doctor.NewCmdDoctor(props))
+		setup.AddCommandWithMiddleware(rootCmd, doctor.NewCmdDoctor(props), p.DoctorCmd)
 	}
 }
 

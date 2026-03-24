@@ -121,7 +121,7 @@ version:
 	// Verify parent was updated correctly
 	parentUpdated, err := afero.ReadFile(fs, filepath.Join(projectRoot, "pkg/cmd/root/cmd.go"))
 	assert.NoError(t, err)
-	assert.Contains(t, string(parentUpdated), "cmd.AddCommand(test_cmd.NewCmdTestCmd(props))")
+	assert.Contains(t, string(parentUpdated), "setup.AddCommandWithMiddleware(cmd, test_cmd.NewCmdTestCmd(props), props.TestCmdCmd)")
 
 	// Verify docs
 	docContent, err := afero.ReadFile(fs, filepath.Join(projectRoot, "docs/commands/test-cmd/index.md"))
@@ -265,7 +265,7 @@ func NewCmdRoot(props *props.Props) *cobra.Command {
 	// Verify parent was updated correctly (no asset collection)
 	parentUpdated, err := afero.ReadFile(fs, filepath.Join(projectRoot, "pkg/cmd/root/cmd.go"))
 	assert.NoError(t, err)
-	assert.Contains(t, string(parentUpdated), "cmd.AddCommand(no_assets_cmd.NewCmdNoAssetsCmd(props))")
+	assert.Contains(t, string(parentUpdated), "setup.AddCommandWithMiddleware(cmd, no_assets_cmd.NewCmdNoAssetsCmd(props), props.NoAssetsCmdCmd)")
 	assert.NotContains(t, string(parentUpdated), "append(allAssets")
 }
 

@@ -15,19 +15,20 @@ import (
 // a ManifestCommand entry.  Adding a new manifest field means adding it here
 // rather than extending the function signature.
 type ManifestCommandUpdate struct {
-	Name             string
-	Description      string
-	LongDescription  string
-	Aliases          []string
-	Args             string
-	Hashes           map[string]string
-	Flags            []ManifestFlag
-	WithAssets       bool
-	WithInitializer  bool
-	PersistentPreRun bool
-	PreRun           bool
-	Protected        *bool
-	Hidden           bool
+	Name                          string
+	Description                   string
+	LongDescription               string
+	Aliases                       []string
+	Args                          string
+	Hashes                        map[string]string
+	Flags                         []ManifestFlag
+	WithAssets                    bool
+	WithInitializer               bool
+	WrapSubcommandsWithMiddleware *bool
+	PersistentPreRun              bool
+	PreRun                        bool
+	Protected                     *bool
+	Hidden                        bool
 }
 
 func (g *Generator) updateManifest(parsedFlags []templates.CommandFlag, hashes map[string]string) error {
@@ -60,19 +61,20 @@ func (g *Generator) updateManifest(parsedFlags []templates.CommandFlag, hashes m
 	if len(pathParts) == 0 {
 		g.updateRootCommand(&m, mFlags, hashes)
 	} else if !updateCommandRecursive(&m.Commands, pathParts, ManifestCommandUpdate{
-		Name:             g.config.Name,
-		Description:      g.config.Short,
-		LongDescription:  g.config.Long,
-		Aliases:          g.config.Aliases,
-		Args:             g.config.Args,
-		Hashes:           hashes,
-		WithAssets:       g.config.WithAssets,
-		WithInitializer:  g.config.WithInitializer,
-		PersistentPreRun: g.config.PersistentPreRun,
-		PreRun:           g.config.PreRun,
-		Protected:        g.config.Protected,
-		Hidden:           g.config.Hidden,
-		Flags:            mFlags,
+		Name:                          g.config.Name,
+		Description:                   g.config.Short,
+		LongDescription:               g.config.Long,
+		Aliases:                       g.config.Aliases,
+		Args:                          g.config.Args,
+		Hashes:                        hashes,
+		WithAssets:                    g.config.WithAssets,
+		WithInitializer:               g.config.WithInitializer,
+		WrapSubcommandsWithMiddleware: g.config.WrapSubcommandsWithMiddleware,
+		PersistentPreRun:              g.config.PersistentPreRun,
+		PreRun:                        g.config.PreRun,
+		Protected:                     g.config.Protected,
+		Hidden:                        g.config.Hidden,
+		Flags:                         mFlags,
 	}) {
 		return errors.Newf("%w: %s", ErrParentPathNotFound, g.config.Parent)
 	}
@@ -104,7 +106,12 @@ func (g *Generator) updateRootCommand(m *Manifest, mFlags []ManifestFlag, hashes
 			m.Commands[i].Args = g.config.Args
 			m.Commands[i].Hashes = hashes
 			m.Commands[i].WithAssets = g.config.WithAssets
+
 			m.Commands[i].WithInitializer = g.config.WithInitializer
+			if g.config.WrapSubcommandsWithMiddleware != nil {
+				m.Commands[i].WrapSubcommandsWithMiddleware = *g.config.WrapSubcommandsWithMiddleware
+			}
+
 			m.Commands[i].PersistentPreRun = g.config.PersistentPreRun
 			m.Commands[i].PreRun = g.config.PreRun
 			m.Commands[i].Hidden = g.config.Hidden
@@ -122,17 +129,24 @@ func (g *Generator) updateRootCommand(m *Manifest, mFlags []ManifestFlag, hashes
 
 	if !found {
 		m.Commands = append(m.Commands, ManifestCommand{
-			Name:             g.config.Name,
-			Description:      MultilineString(g.config.Short),
-			LongDescription:  MultilineString(g.config.Long),
-			Aliases:          g.config.Aliases,
-			Args:             g.config.Args,
-			Hidden:           g.config.Hidden,
-			Flags:            mFlags,
-			Hashes:           hashes,
-			Protected:        g.config.Protected,
-			WithAssets:       g.config.WithAssets,
-			WithInitializer:  g.config.WithInitializer,
+			Name:            g.config.Name,
+			Description:     MultilineString(g.config.Short),
+			LongDescription: MultilineString(g.config.Long),
+			Aliases:         g.config.Aliases,
+			Args:            g.config.Args,
+			Hidden:          g.config.Hidden,
+			Flags:           mFlags,
+			Hashes:          hashes,
+			Protected:       g.config.Protected,
+			WithAssets:      g.config.WithAssets,
+			WithInitializer: g.config.WithInitializer,
+			WrapSubcommandsWithMiddleware: func() bool {
+				if g.config.WrapSubcommandsWithMiddleware != nil {
+					return *g.config.WrapSubcommandsWithMiddleware
+				}
+
+				return true // Default for new commands
+			}(),
 			PersistentPreRun: g.config.PersistentPreRun,
 			PreRun:           g.config.PreRun,
 		})
@@ -155,56 +169,79 @@ func updateCommandRecursive(commands *[]ManifestCommand, parentPath []string, u 
 
 func handleCommandRecursiveUpdate(commands *[]ManifestCommand, idx int, parentPath []string, u ManifestCommandUpdate) bool {
 	if len(parentPath) == 1 {
-		// Found the parent
-		found := false
-
-		for j, sub := range (*commands)[idx].Commands {
-			if sub.Name == u.Name {
-				(*commands)[idx].Commands[j].Description = MultilineString(u.Description)
-				(*commands)[idx].Commands[j].LongDescription = MultilineString(u.LongDescription)
-				(*commands)[idx].Commands[j].Aliases = u.Aliases
-				(*commands)[idx].Commands[j].Args = u.Args
-				(*commands)[idx].Commands[j].Hashes = u.Hashes
-				(*commands)[idx].Commands[j].WithAssets = u.WithAssets
-				(*commands)[idx].Commands[j].WithInitializer = u.WithInitializer
-				(*commands)[idx].Commands[j].PersistentPreRun = u.PersistentPreRun
-				(*commands)[idx].Commands[j].PreRun = u.PreRun
-				(*commands)[idx].Commands[j].Hidden = u.Hidden
-				(*commands)[idx].Commands[j].Flags = u.Flags
-
-				if u.Protected != nil {
-					(*commands)[idx].Commands[j].Protected = u.Protected
-				}
-
-				found = true
-
-				break
-			}
-		}
-
-		if !found {
-			(*commands)[idx].Commands = append((*commands)[idx].Commands, ManifestCommand{
-				Name:             u.Name,
-				Description:      MultilineString(u.Description),
-				LongDescription:  MultilineString(u.LongDescription),
-				Aliases:          u.Aliases,
-				Args:             u.Args,
-				Hashes:           u.Hashes,
-				WithAssets:       u.WithAssets,
-				WithInitializer:  u.WithInitializer,
-				PersistentPreRun: u.PersistentPreRun,
-				PreRun:           u.PreRun,
-				Hidden:           u.Hidden,
-				Flags:            u.Flags,
-				Protected:        u.Protected,
-			})
-		}
+		updateOrAppendCommand(&(*commands)[idx].Commands, u)
 
 		return true
 	}
 
 	// Descend further
 	return updateCommandRecursive(&(*commands)[idx].Commands, parentPath[1:], u)
+}
+
+func updateOrAppendCommand(commands *[]ManifestCommand, u ManifestCommandUpdate) {
+	found := false
+
+	for j, sub := range *commands {
+		if sub.Name == u.Name {
+			updateExistingCommand(&(*commands)[j], u)
+
+			found = true
+
+			break
+		}
+	}
+
+	if !found {
+		*commands = append(*commands, createNewManifestCommand(u))
+	}
+}
+
+func updateExistingCommand(cmd *ManifestCommand, u ManifestCommandUpdate) {
+	cmd.Description = MultilineString(u.Description)
+	cmd.LongDescription = MultilineString(u.LongDescription)
+	cmd.Aliases = u.Aliases
+	cmd.Args = u.Args
+	cmd.Hashes = u.Hashes
+	cmd.WithAssets = u.WithAssets
+	cmd.WithInitializer = u.WithInitializer
+
+	if u.WrapSubcommandsWithMiddleware != nil {
+		cmd.WrapSubcommandsWithMiddleware = *u.WrapSubcommandsWithMiddleware
+	}
+
+	cmd.PersistentPreRun = u.PersistentPreRun
+	cmd.PreRun = u.PreRun
+	cmd.Hidden = u.Hidden
+	cmd.Flags = u.Flags
+
+	if u.Protected != nil {
+		cmd.Protected = u.Protected
+	}
+}
+
+func createNewManifestCommand(u ManifestCommandUpdate) ManifestCommand {
+	return ManifestCommand{
+		Name:            u.Name,
+		Description:     MultilineString(u.Description),
+		LongDescription: MultilineString(u.LongDescription),
+		Aliases:         u.Aliases,
+		Args:            u.Args,
+		Hashes:          u.Hashes,
+		WithAssets:      u.WithAssets,
+		WithInitializer: u.WithInitializer,
+		WrapSubcommandsWithMiddleware: func() bool {
+			if u.WrapSubcommandsWithMiddleware != nil {
+				return *u.WrapSubcommandsWithMiddleware
+			}
+
+			return true // Default for new commands
+		}(),
+		PersistentPreRun: u.PersistentPreRun,
+		PreRun:           u.PreRun,
+		Hidden:           u.Hidden,
+		Flags:            u.Flags,
+		Protected:        u.Protected,
+	}
 }
 
 // updateParentCmdHash reads the parent command's cmd.go after it has been

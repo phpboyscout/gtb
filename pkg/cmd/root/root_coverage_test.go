@@ -12,6 +12,7 @@ import (
 	"github.com/phpboyscout/go-tool-base/pkg/errorhandling"
 	"github.com/phpboyscout/go-tool-base/pkg/logger"
 	p "github.com/phpboyscout/go-tool-base/pkg/props"
+	"github.com/phpboyscout/go-tool-base/pkg/setup"
 	ver "github.com/phpboyscout/go-tool-base/pkg/version"
 
 	"github.com/charmbracelet/huh"
@@ -33,6 +34,8 @@ github:
 )
 
 func TestNewCmdRoot(t *testing.T) {
+	setup.ResetRegistryForTesting()
+	t.Cleanup(setup.ResetRegistryForTesting)
 	props := &p.Props{
 		Tool: p.Tool{
 			Name: "test-tool",
@@ -51,6 +54,8 @@ func TestNewCmdRoot(t *testing.T) {
 }
 
 func TestCheckForUpdates(t *testing.T) {
+	setup.ResetRegistryForTesting()
+	t.Cleanup(setup.ResetRegistryForTesting)
 	// Setup Mock GitHub API
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/v3/repos/owner/repo/releases/latest" {
@@ -87,10 +92,10 @@ func TestCheckForUpdates(t *testing.T) {
 				Repo:  "repo",
 			},
 		},
-		Logger: l,
-		FS:     memFS,
-		Config: cfgContainer,
-		Version: ver.NewInfo("v0.0.1", "", ""), // Outdated
+		Logger:       l,
+		FS:           memFS,
+		Config:       cfgContainer,
+		Version:      ver.NewInfo("v0.0.1", "", ""), // Outdated
 		ErrorHandler: errorhandling.New(l, nil),
 	}
 

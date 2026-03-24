@@ -87,7 +87,7 @@ func registerSubcommands(props *p.Props, cmd *cobra.Command) {
 		if props.Tool.IsEnabled(feature) {
 			for _, provider := range providers {
 				for _, sub := range provider(props) {
-					cmd.AddCommand(sub)
+					setup.AddCommandWithMiddleware(cmd, sub, feature)
 				}
 			}
 		}

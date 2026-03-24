@@ -60,17 +60,19 @@ type Manifest struct {
 }
 
 type ManifestCommand struct {
-	Name              string            `yaml:"name"`
-	Description       MultilineString   `yaml:"description"`
-	LongDescription   MultilineString   `yaml:"long_description,omitempty"`
-	Aliases           []string          `yaml:"aliases,omitempty"`
-	Hidden            bool              `yaml:"hidden,omitempty"`
-	Args              string            `yaml:"args,omitempty"`
-	Hash              string            `yaml:"hash,omitempty"` // Deprecated: use Hashes
-	Hashes            map[string]string `yaml:"hashes,omitempty"`
-	WithAssets        bool              `yaml:"with_assets,omitempty"`
-	WithInitializer   bool              `yaml:"with_initializer,omitempty"`
-	Protected         *bool             `yaml:"protected,omitempty"`
+	Name                          string            `yaml:"name"`
+	Description                   MultilineString   `yaml:"description"`
+	LongDescription               MultilineString   `yaml:"long_description,omitempty"`
+	Aliases                       []string          `yaml:"aliases,omitempty"`
+	Hidden                        bool              `yaml:"hidden,omitempty"`
+	Args                          string            `yaml:"args,omitempty"`
+	Hash                          string            `yaml:"hash,omitempty"` // Deprecated: use Hashes
+	Hashes                        map[string]string `yaml:"hashes,omitempty"`
+	WithAssets                    bool              `yaml:"with_assets,omitempty"`
+	WithInitializer               bool              `yaml:"with_initializer,omitempty"`
+	WrapSubcommandsWithMiddleware bool              `yaml:"wrap_subcommands_with_middleware,omitempty"`
+	Protected                     *bool             `yaml:"protected,omitempty"`
+
 	PersistentPreRun  bool              `yaml:"persistent_pre_run,omitempty"`
 	PreRun            bool              `yaml:"pre_run,omitempty"`
 	MutuallyExclusive [][]string        `yaml:"mutually_exclusive,omitempty"`
