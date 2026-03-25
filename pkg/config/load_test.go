@@ -2,6 +2,7 @@ package config_test
 
 import (
 	"embed"
+	"os"
 	"testing"
 	"testing/fstest"
 
@@ -393,4 +394,23 @@ server:
 		assert.NotNil(t, dbConfig)
 		assert.Equal(t, "localhost", dbConfig.GetString("host"))
 	})
+}
+
+func TestLoadEnv_WithDotEnvFile(t *testing.T) {
+	// LoadEnv is called internally by initContainer; exercise it by writing a
+	// .env file to an OsFs temp directory and verifying the variable is visible.
+	tmpDir := t.TempDir()
+	envFile := tmpDir + "/.env"
+	require.NoError(t, os.WriteFile(envFile, []byte("LOAD_ENV_TEST_VAR=loaded\n"), 0o644))
+
+	fs := afero.NewOsFs()
+	// Change to the temp dir so the relative ".env" path is found.
+	prev, err := os.Getwd()
+	require.NoError(t, err)
+	require.NoError(t, os.Chdir(tmpDir))
+	t.Cleanup(func() { _ = os.Chdir(prev) })
+
+	config.LoadEnv(fs, logger.NewNoop())
+
+	assert.Equal(t, "loaded", os.Getenv("LOAD_ENV_TEST_VAR"))
 }

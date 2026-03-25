@@ -272,6 +272,90 @@ func TestOpenMergedCSV_EmptyCSV(t *testing.T) {
 	assert.ErrorIs(t, err, fs.ErrNotExist)
 }
 
+func TestAssets_Exists_Found(t *testing.T) {
+	t.Parallel()
+	f1 := fstest.MapFS{"hello.txt": &fstest.MapFile{Data: []byte("hello")}}
+	assets := NewAssets(AssetMap{"a": f1})
+	found, err := assets.Exists("hello.txt")
+	require.NoError(t, err)
+	assert.NotNil(t, found)
+}
+
+func TestAssets_Exists_NotFound(t *testing.T) {
+	t.Parallel()
+	assets := NewAssets(AssetMap{"a": fstest.MapFS{}})
+	_, err := assets.Exists("missing.txt")
+	assert.ErrorIs(t, err, fs.ErrNotExist)
+}
+
+func TestAssets_Stat_Found(t *testing.T) {
+	t.Parallel()
+	f1 := fstest.MapFS{"file.txt": &fstest.MapFile{Data: []byte("content")}}
+	assets := NewAssets(AssetMap{"a": f1})
+	info, err := assets.Stat("file.txt")
+	require.NoError(t, err)
+	assert.Equal(t, "file.txt", info.Name())
+}
+
+func TestAssets_Stat_NotFound(t *testing.T) {
+	t.Parallel()
+	assets := NewAssets(AssetMap{"a": fstest.MapFS{}})
+	_, err := assets.Stat("missing.txt")
+	assert.ErrorIs(t, err, fs.ErrNotExist)
+}
+
+func TestAssets_Glob(t *testing.T) {
+	t.Parallel()
+	f1 := fstest.MapFS{
+		"docs/a.md": &fstest.MapFile{},
+		"docs/b.md": &fstest.MapFile{},
+		"other.txt": &fstest.MapFile{},
+	}
+	assets := NewAssets(AssetMap{"a": f1})
+	matches, err := assets.Glob("docs/*.md")
+	require.NoError(t, err)
+	assert.Equal(t, []string{"docs/a.md", "docs/b.md"}, matches)
+}
+
+func TestAssets_Merge(t *testing.T) {
+	t.Parallel()
+	f1 := fstest.MapFS{"f1.txt": &fstest.MapFile{}}
+	f2 := fstest.MapFS{"f2.txt": &fstest.MapFile{}}
+	a1 := NewAssets(AssetMap{"a": f1})
+	a2 := NewAssets(AssetMap{"b": f2})
+	result := a1.Merge(a2)
+	require.NotNil(t, result)
+	assert.Len(t, result.Names(), 2)
+	_, err := result.Open("f1.txt")
+	assert.NoError(t, err)
+	_, err = result.Open("f2.txt")
+	assert.NoError(t, err)
+}
+
+func TestMergedFileInfo_Accessors(t *testing.T) {
+	t.Parallel()
+	fi := &mergedFileInfo{name: "test.yaml", size: 42}
+	assert.Equal(t, "test.yaml", fi.Name())
+	assert.Equal(t, int64(42), fi.Size())
+	assert.NotEqual(t, fs.FileMode(0), fi.Mode())
+	assert.True(t, fi.ModTime().IsZero())
+	assert.False(t, fi.IsDir())
+	assert.Nil(t, fi.Sys())
+}
+
+func TestMergedFile_StatAndClose(t *testing.T) {
+	t.Parallel()
+	// Open a YAML asset to obtain a *mergedFile.
+	f1 := fstest.MapFS{"cfg.yaml": &fstest.MapFile{Data: []byte("key: value")}}
+	assets := NewAssets(AssetMap{"a": f1})
+	f, err := assets.Open("cfg.yaml")
+	require.NoError(t, err)
+	info, err := f.Stat()
+	require.NoError(t, err)
+	assert.Equal(t, "cfg.yaml", info.Name())
+	assert.NoError(t, f.Close())
+}
+
 func TestOpenMergedCSV_FilesClosedPromptly(t *testing.T) {
 	spy1 := &spyFS{inner: fstest.MapFS{
 		"data.csv": &fstest.MapFile{Data: []byte("id,name\n1,alice")},
