@@ -22,13 +22,13 @@ func WithTiming(l logger.Logger) Middleware {
 			duration := time.Since(start)
 
 			if err != nil {
-				l.Info("command completed",
+				l.Debug("command completed",
 					"command", cmd.Name(),
 					"duration", duration,
 					"error", err.Error(),
 				)
 			} else {
-				l.Info("command completed",
+				l.Debug("command completed",
 					"command", cmd.Name(),
 					"duration", duration,
 				)
