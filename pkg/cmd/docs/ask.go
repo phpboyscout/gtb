@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"io/fs"
 
-	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/cockroachdb/errors"
 	"github.com/spf13/cobra"
 
 	docslib "github.com/phpboyscout/go-tool-base/pkg/docs"
 	"github.com/phpboyscout/go-tool-base/pkg/logger"
+	"github.com/phpboyscout/go-tool-base/pkg/output"
 	"github.com/phpboyscout/go-tool-base/pkg/props"
 )
 
@@ -33,10 +33,6 @@ func NewCmdDocsAsk(p *props.Props) *cobra.Command {
 
 	return cmd
 }
-
-const (
-	defaultWordWrap = 80
-)
 
 func runAsk(ctx context.Context, p *props.Props, question string, noStyle bool, provider string) error {
 	// 1. Load Docs Content
@@ -70,18 +66,9 @@ func runAsk(ctx context.Context, p *props.Props, question string, noStyle bool, 
 	fmt.Println(lipgloss.NewStyle().Foreground(lipgloss.Color("205")).Bold(true).Render("Answer:"))
 
 	if !noStyle {
-		r, _ := glamour.NewTermRenderer(
-			glamour.WithAutoStyle(),
-			glamour.WithWordWrap(defaultWordWrap),
-		)
+		fmt.Print(output.RenderMarkdown(answer))
 
-		out, err := r.Render(answer)
-		if err == nil {
-			fmt.Print(out)
-
-			return nil
-		}
-		// Fallback if render fails
+		return nil
 	}
 
 	fmt.Println(answer)

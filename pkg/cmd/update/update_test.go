@@ -200,8 +200,12 @@ func TestUpdate(t *testing.T) {
 			return mu, nil
 		}
 
-		err := update.Update(context.Background(), props, "", false)
-		assert.NoError(t, err)
+		result, err := update.Update(context.Background(), props, "", false)
+		require.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.True(t, result.Updated)
+		assert.Equal(t, "v1.0.0", result.PreviousVersion)
+		assert.Equal(t, "v1.1.0", result.NewVersion)
 	})
 
 	t.Run("updater_creation_failure", func(t *testing.T) {
@@ -209,7 +213,7 @@ func TestUpdate(t *testing.T) {
 			return nil, fmt.Errorf("failed to create updater")
 		}
 
-		err := update.Update(context.Background(), props, "", false)
+		_, err := update.Update(context.Background(), props, "", false)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to create updater")
 	})
@@ -222,7 +226,7 @@ func TestUpdate(t *testing.T) {
 			return mu, nil
 		}
 
-		err := update.Update(context.Background(), props, "", false)
+		_, err := update.Update(context.Background(), props, "", false)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "download failed")
 	})
@@ -239,13 +243,3 @@ func (m *mockVersion) String() string     { return m.version }
 func (m *mockVersion) Compare(other string) int { return version.CompareVersions(m.version, other) }
 func (m *mockVersion) IsDevelopment() bool { return false }
 
-func TestRenderMarkdown(t *testing.T) {
-	t.Parallel()
-	
-	content := "# Heading\n\nSome content"
-	rendered := update.RenderMarkdown(content)
-	
-	assert.NotEmpty(t, rendered)
-	// Rendered content might contain ANSI escape codes if term is detected, 
-	// or just the string if not.
-}

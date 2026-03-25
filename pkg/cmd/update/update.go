@@ -7,13 +7,11 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"strings"
 
-	"github.com/charmbracelet/glamour"
-	"github.com/charmbracelet/x/term"
 	"github.com/cockroachdb/errors"
 	"github.com/spf13/cobra"
 
+	"github.com/phpboyscout/go-tool-base/pkg/output"
 	p "github.com/phpboyscout/go-tool-base/pkg/props"
 	"github.com/phpboyscout/go-tool-base/pkg/setup"
 )
@@ -63,7 +61,16 @@ func NewCmdUpdate(props *p.Props) *cobra.Command {
 				return errors.Newf("invalid version format %q, expected semVer pattern v0.0.0", version)
 			}
 
-			return Update(cmd.Context(), props, version, force)
+			result, err := Update(cmd.Context(), props, version, force)
+			if err != nil {
+				return err
+			}
+
+			return output.Emit(cmd, output.Response{
+				Status:  output.StatusSuccess,
+				Command: "update",
+				Data:    result,
+			})
 		},
 	}
 
@@ -73,11 +80,20 @@ func NewCmdUpdate(props *p.Props) *cobra.Command {
 	return updateCmd
 }
 
-func Update(ctx context.Context, props *p.Props, version string, force bool) error {
+// UpdateResult contains the outcome of a successful update.
+type UpdateResult struct {
+	PreviousVersion string `json:"previous_version"`
+	NewVersion      string `json:"new_version"`
+	Updated         bool   `json:"updated"`
+}
+
+func Update(ctx context.Context, props *p.Props, version string, force bool) (*UpdateResult, error) {
 	updater, err := ExportNewUpdater(props, version, force)
 	if err != nil {
-		return err
+		return nil, err
 	}
+
+	previousVersion := updater.GetCurrentVersion()
 
 	target := version
 	if version == "" {
@@ -88,7 +104,7 @@ func Update(ctx context.Context, props *p.Props, version string, force bool) err
 
 	binPath, err := updater.Update(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// update the config in the standard locations
@@ -98,9 +114,9 @@ func Update(ctx context.Context, props *p.Props, version string, force bool) err
 		// we are in a standard upgrade
 		latestVersion, latestErr := updater.GetLatestVersionString(ctx)
 		if latestErr == nil {
-			releaseNotes, err := updater.GetReleaseNotes(ctx, updater.GetCurrentVersion(), latestVersion)
-			if err == nil {
-				styledNotes := RenderMarkdown(releaseNotes)
+			releaseNotes, relErr := updater.GetReleaseNotes(ctx, previousVersion, latestVersion)
+			if relErr == nil {
+				styledNotes := output.RenderMarkdown(releaseNotes)
 				props.Logger.Print(styledNotes)
 			}
 		}
@@ -108,7 +124,11 @@ func Update(ctx context.Context, props *p.Props, version string, force bool) err
 
 	props.Logger.Info("Update complete")
 
-	return nil
+	return &UpdateResult{
+		PreviousVersion: previousVersion,
+		NewVersion:      target,
+		Updated:         true,
+	}, nil
 }
 
 func UpdateConfig(ctx context.Context, props *p.Props, binPath string) {
@@ -133,28 +153,4 @@ func UpdateConfig(ctx context.Context, props *p.Props, binPath string) {
 			}
 		}
 	}
-}
-
-// RenderMarkdown uses glamour to style markdown content.
-func RenderMarkdown(content string) string {
-	// Get terminal width, fallback to 80 if detection fails
-	width := 80
-	if w, _, err := term.GetSize(os.Stdout.Fd()); err == nil && w > 0 {
-		width = w
-	}
-
-	r, err := glamour.NewTermRenderer(
-		glamour.WithAutoStyle(),
-		glamour.WithWordWrap(width),
-	)
-	if err != nil {
-		return content // fallback to plain text if glamour fails
-	}
-
-	out, err := r.Render(content)
-	if err != nil {
-		return content // fallback to plain text if rendering fails
-	}
-
-	return strings.TrimSpace(out)
 }
