@@ -22,9 +22,9 @@ Modern CLI tools and DevOps workflows demand more than basic flag parsing. GTB w
 
 Before diving into code, we highly recommend reading our positioning guides to understand if GTB is the right fit for your next project:
 
-- **[What is GTB?](why-gtb.md)** — Core philosophy, "IS / IS NOT" framing, and the 8 key advantages.
-- **[Framework Comparison](comparison.md)** — Direct comparisons with Cobra, Viper, urfave/cli, and web frameworks.
-- **[Coming from other Ecosystems?](coming-from-other-ecosystems.md)** — A translation guide for developers migrating from PHP (Laravel), Ruby (Rails), or Python (Django).
+- **[What is GTB?](about/why-gtb.md)** — Core philosophy, "IS / IS NOT" framing, and the 8 key advantages.
+- **[Framework Comparison](about/comparison.md)** — Direct comparisons with Cobra, Viper, urfave/cli, and web frameworks.
+- **[Coming from other Ecosystems?](about/coming-from-other-ecosystems.md)** — A translation guide for developers migrating from PHP (Laravel), Ruby (Rails), or Python (Django).
 
 ## Overview
 
