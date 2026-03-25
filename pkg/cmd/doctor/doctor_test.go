@@ -207,9 +207,23 @@ func (m *mockStatFs) Stat(name string) (os.FileInfo, error) {
 }
 
 func TestCheckPermissions_EmptyDir(t *testing.T) {
-	t.Parallel()
-	// Hard to mock os.UserHomeDir generically, skipping this exact simulation 
-	// unless we use t.Setenv("HOME", "") but that's not parallel safe in Go 1.20+.
+	// Not parallel: modifies HOME environment variable via t.Setenv.
+	// GetDefaultConfigDir calls os.UserHomeDir which reads $HOME on Linux.
+	tempHome := t.TempDir() // real OS dir, owned by test runner with 0700 perms
+	t.Setenv("HOME", tempHome)
+
+	props := &p.Props{
+		FS:   afero.NewOsFs(), // real FS so GetDefaultConfigDir can create the dir
+		Tool: p.Tool{Name: "emptydirtest"},
+	}
+
+	result := checkPermissions(context.Background(), props)
+
+	// GetDefaultConfigDir creates <tempHome>/.emptydirtest with correct perms.
+	// An empty (just-created) config directory with the right owner permissions
+	// should pass the check.
+	assert.Equal(t, CheckPass, result.Status)
+	assert.Contains(t, result.Message, "config dir:")
 }
 
 func TestCheckPermissions_NonExistent(t *testing.T) {
