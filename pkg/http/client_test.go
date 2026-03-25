@@ -102,6 +102,20 @@ func TestRedirectPolicy(t *testing.T) {
 	})
 }
 
+func TestNewClient_WithMaxRedirects_Zero(t *testing.T) {
+	t.Parallel()
+
+	client := NewClient(WithMaxRedirects(0))
+
+	// len(via) >= 0 is always true, so every redirect attempt must be rejected.
+	req, _ := http.NewRequest(http.MethodGet, "https://example.com/dest", nil)
+	via := []*http.Request{{URL: mustParseURL("https://example.com/src")}}
+
+	err := client.CheckRedirect(req, via)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "stopped after 0 redirects")
+}
+
 func TestNewClient_RealHTTPSRequest(t *testing.T) {
 	t.Parallel()
 	// Start a local TLS server
