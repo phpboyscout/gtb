@@ -1,5 +1,8 @@
 # Go Tool Base (GTB)
 
+[![Tests](https://github.com/phpboyscout/go-tool-base/actions/workflows/test.yaml/badge.svg)](https://github.com/phpboyscout/go-tool-base/actions/workflows/test.yaml)
+[![Coverage](https://img.shields.io/badge/coverage-68%25-brightgreen)](https://github.com/phpboyscout/go-tool-base/actions/workflows/test.yaml)
+
 **The Intelligent Application Lifecycle Framework for Go.**
 
 Modern CLI tools, DevOps workflows, and developer utilities demand far more than basic flag parsing. GTB works as a "batteries-included" micro-framework (like Rails or Laravel), but meticulously tailored for Go command-line applications and beyond.

@@ -161,32 +161,21 @@ func (s *SelfUpdater) GetLatestRelease() (release.Release, error)
 
 ## Version Management
 
-#### Version Comparison
+Version comparison and formatting utilities live in `pkg/version`, not in
+`pkg/setup`. The self-updater uses them internally:
+
 ```go
-func CompareVersions(v, w string) int
+import ver "github.com/phpboyscout/go-tool-base/pkg/version"
+
+// Compare two version strings — returns -1, 0, or 1
+result := ver.CompareVersions("v1.2.3", "v1.3.0") // -1 (upgrade available)
+
+// Normalise v prefix
+ver.FormatVersionString("1.2.3", true)   // "v1.2.3"
+ver.FormatVersionString("v1.2.3", false) // "1.2.3"
 ```
 
-Semantic version comparison using `golang.org/x/mod/semver`:
-
-- Returns `-1` if v < w (upgrade needed)
-- Returns `0` if v == w (same version)
-- Returns `1` if v > w (downgrade needed)
-
-Automatically handles "v" prefix normalization.
-
-#### Version Formatting
-```go
-func FormatVersionString(version string, prefixWanted bool) string
-```
-
-Standardizes version string format:
-```go
-// Add v prefix
-version := FormatVersionString("1.2.3", true)  // "v1.2.3"
-
-// Remove v prefix
-version := FormatVersionString("v1.2.3", false) // "1.2.3"
-```
+See the [Version component documentation](../version.md) for the full API.
 
 ## Command Middleware
 

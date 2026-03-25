@@ -64,7 +64,7 @@ The `setup` package provides several production-ready middlewares in `middleware
 
 ### `WithTiming`
 ```go
-func WithTiming(logger *slog.Logger) Middleware
+func WithTiming(l logger.Logger) Middleware
 ```
 Logs the execution duration of the command.
 - **Log Level**: `Info`
@@ -72,7 +72,7 @@ Logs the execution duration of the command.
 
 ### `WithRecovery`
 ```go
-func WithRecovery(logger *slog.Logger) Middleware
+func WithRecovery(l logger.Logger) Middleware
 ```
 Catches panics during command execution and converts them into returned errors.
 - **Log Level**: `Error` (on panic)

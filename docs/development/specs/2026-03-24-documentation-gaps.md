@@ -2,7 +2,7 @@
 title: "Documentation Gaps Specification"
 description: "Fill documentation gaps identified in review: version migration guides, coverage badge and CI enforcement, controls health/status documentation, API stability policy, and error catalogue."
 date: 2026-03-24
-status: DRAFT
+status: IN PROGRESS
 tags:
   - specification
   - documentation
@@ -23,7 +23,7 @@ Date
 :   24 March 2026
 
 Status
-:   DRAFT
+:   IN PROGRESS
 
 ---
 
@@ -336,7 +336,7 @@ Documentation changes do not have traditional unit tests, but the following veri
 
 | Check | Method |
 |-------|--------|
-| All new Markdown files render correctly | `mkdocs build --strict` (fails on broken links, missing pages) |
+| All new Markdown files render correctly | `zensical build --clean` (fails on broken links, missing pages) |
 | Migration template is valid | Manual review of structure |
 | Error catalogue matches codebase | `grep -rn 'errors.New\|errors.Newf\|var Err' --include='*.go' pkg/` compared against catalogue entries |
 | Coverage badge URL is valid | CI run produces expected badge |
@@ -412,8 +412,51 @@ Documentation changes do not have traditional unit tests, but the following veri
 3. Add handling guidance for each error
 4. Add to `mkdocs.yml` nav
 
-### Phase 6 -- Verification
-1. Run `mkdocs build --strict` to verify all documentation renders
+### Phase 6 -- Missing Component Pages and Stale Doc Fixes
+
+A secondary audit (2026-03-25) identified three undocumented packages and
+several stale pages. All addressed in this phase.
+
+**New component pages:**
+
+1. Create `docs/components/logger.md` — Logger interface, backends (charm/slog/noop),
+   options, slog interoperability, testing
+2. Create `docs/components/output.md` — Writer, Format constants, dual-format pattern,
+   JSON marshalling, `--output` flag integration
+3. Create `docs/components/version.md` — Version interface, Info struct, ldflags wiring,
+   CompareVersions, FormatVersionString, IsDevelopment
+4. Update `docs/components/index.md` — add logger, output, version rows to the table
+
+**Stale page fixes:**
+
+5. Update `docs/concepts/interface-design.md` (dated Feb 17):
+   - Add Logger interface section
+   - Add narrow provider interfaces (LoggerProvider, ConfigProvider, ErrorHandlerProvider)
+   - Replace monolithic Controllable with the narrowed Runner/StateAccessor/Configurable/ChannelProvider design
+   - Fix `SetLogger` / `GetLogger` signatures (`logger.Logger` not `*slog.Logger`)
+6. Fix `docs/components/setup/index.md` — Version Management section incorrectly
+   attributes `CompareVersions`/`FormatVersionString` to `pkg/setup`; redirect to `pkg/version`
+7. Update `docs/concepts/auto-update.md` — clarify that `IsLatestVersion` delegates
+   version comparison to `pkg/version`
+
+### Phase 7 -- Critical Staleness Fixes (secondary audit 2026-03-25)
+
+A second pass identified critical type errors across four docs caused by the
+unified-logger-abstraction spec (2026-03-23) changing `*slog.Logger` to
+`logger.Logger`.
+
+1. `docs/components/controls.md` — fix 7 occurrences of `*slog.Logger` in
+   interface definitions, struct fields, factory signatures, and code examples
+2. `docs/concepts/service-orchestration.md` — fix 1 reference to `slog.Logger`
+3. `docs/components/setup/middleware.md` — fix `WithTiming` and `WithRecovery`
+   signatures from `*slog.Logger` to `logger.Logger`
+4. `docs/concepts/functional-options.md` — fix `WithLogger` signature and
+   `ControllerOpt` parameter type; replace `slog.Default()` with `logger.NewNoop()`
+5. `docs/concepts/interface-design.md` — fix `Dump()` → `Dump(w io.Writer)`
+6. Create `docs/concepts/logging.md` — logging concept page per unified-logger spec requirement
+
+### Phase 8 -- Verification
+1. Run `zensical build --clean` to verify all documentation renders without errors
 2. Verify coverage badge displays correctly
 3. Verify coverage threshold CI step works
 4. Cross-check error catalogue against codebase
@@ -424,7 +467,7 @@ Documentation changes do not have traditional unit tests, but the following veri
 
 ```bash
 # Build documentation site
-mkdocs build --strict
+zensical build --clean
 
 # Verify new files exist
 test -f docs/migration/_template.md && echo "migration template exists"

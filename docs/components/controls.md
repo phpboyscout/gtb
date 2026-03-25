@@ -66,11 +66,11 @@ func main() {
     defer cancel()
 
     // Create logger
-    logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+    l := logger.NewCharm(os.Stderr)
 
     // Create controller
     controller := controls.NewController(ctx,
-        controls.WithLogger(logger),
+        controls.WithLogger(l),
     )
 
     // Create HTTP server
@@ -124,11 +124,24 @@ Provides service lifecycle operations:
 type Runner interface {
     Start()
     Stop()
-    Status() HealthReport
     IsRunning() bool
     IsStopped() bool
     IsStopping() bool
     Register(id string, opts ...ServiceOption)
+}
+```
+
+### HealthReporter
+
+Provides read access to aggregated service health. Use this interface when a
+component only needs to query health — it does not need the full `Controllable`:
+
+```go
+type HealthReporter interface {
+    Status() HealthReport
+    Liveness() HealthReport
+    Readiness() HealthReport
+    GetServiceInfo(name string) (ServiceInfo, bool)
 }
 ```
 
@@ -157,7 +170,7 @@ type Configurable interface {
     SetHealthChannel(health chan HealthMessage)
     SetWaitGroup(wg *sync.WaitGroup)
     SetShutdownTimeout(d time.Duration)
-    SetLogger(logger *slog.Logger)
+    SetLogger(l logger.Logger)
 }
 ```
 
@@ -181,6 +194,7 @@ The full controller interface, composed of all role-based interfaces:
 ```go
 type Controllable interface {
     Runner
+    HealthReporter
     StateAccessor
     Configurable
     ChannelProvider
@@ -196,7 +210,7 @@ The `Controller` struct is the primary implementation of the `Controllable` inte
 ```go
 type Controller struct {
     ctx        context.Context
-    logger     *slog.Logger
+    logger     logger.Logger
     messages   chan Message
     health     chan HealthMessage
     errs       chan error
@@ -212,7 +226,7 @@ func NewController(ctx context.Context, opts ...ControllerOpt) *Controller
 
 // Available options
 func WithoutSignals() ControllerOpt
-func WithLogger(logger *slog.Logger) ControllerOpt
+func WithLogger(l logger.Logger) ControllerOpt
 ```
 
 ## Service Types and States
@@ -282,6 +296,68 @@ if ok {
 }
 ```
 
+### Health & Status Checks
+
+The controls package supports health and status reporting through the
+`WithStatus()` service option:
+
+```go
+controller.Register("my-service",
+    controls.WithStart(startFn),
+    controls.WithStop(stopFn),
+    controls.WithStatus(func() error {
+        // Return nil to indicate healthy, non-nil to indicate unhealthy.
+        return nil
+    }),
+)
+```
+
+**Intended pattern:** each registered service provides a `StatusFunc` that the
+controller calls when a `controls.Status` message is sent on the messages
+channel. The function is responsible for reporting its health to the shared
+health channel:
+
+```go
+statusFunc := func() error {
+    controller.Health() <- controls.HealthMessage{
+        Host:    "localhost",
+        Port:    8080,
+        Status:  200,
+        Message: "service is healthy",
+    }
+    return nil
+}
+```
+
+Returning a non-nil error signals that the service is unhealthy. When a
+`WithRestartPolicy` is configured, repeated health failures trigger an
+automatic restart (see [Self-Healing and Automatic Restarts](#self-healing-and-automatic-restarts)).
+
+**Liveness vs readiness:** For Kubernetes-style probes, prefer the dedicated
+`WithLiveness` and `WithReadiness` options (see below) over `WithStatus`. The
+`WithStatus` mechanism is for internal controller health aggregation.
+
+### Liveness and Readiness Probes
+
+```go
+controller.Register("my-service",
+    controls.WithStart(startFn),
+    controls.WithLiveness(func() error {
+        // Return nil if the service is alive (i.e. should not be restarted).
+        return nil
+    }),
+    controls.WithReadiness(func() error {
+        // Return nil if the service can accept traffic.
+        return nil
+    }),
+)
+```
+
+The HTTP and gRPC server implementations expose these probes at:
+
+- **`/healthz`** — liveness check (returns 200 OK / 503 Service Unavailable)
+- **`/readyz`** — readiness check (returns 200 OK / 503 Service Unavailable)
+
 ### Controller States
 
 ```go
@@ -324,9 +400,9 @@ import (
     "github.com/phpboyscout/go-tool-base/pkg/controls"
 )
 
-func setupController(ctx context.Context, logger *slog.Logger) *controls.Controller {
+func setupController(ctx context.Context, l logger.Logger) *controls.Controller {
     controller := controls.NewController(ctx,
-        controls.WithLogger(logger),
+        controls.WithLogger(l),
     )
 
     return controller
@@ -621,8 +697,8 @@ func TestHTTPServerLifecycle(t *testing.T) {
     ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
     defer cancel()
 
-    logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-    controller := controls.NewController(ctx, controls.WithLogger(logger))
+    l := logger.NewNoop()
+    controller := controls.NewController(ctx, controls.WithLogger(l))
 
     // Create test HTTP server
     server := &http.Server{

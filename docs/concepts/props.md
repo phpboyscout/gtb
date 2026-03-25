@@ -11,7 +11,7 @@ authors: [Matt Cockayne <matt@phpboyscout.com>]
 The `Props` struct is the "Context Object" of GTB. It acts as a dependency injection container that carries global state, service interfaces, and tool metadata throughout your application's lifecycle.
 
 !!! note "What's in a Name?"
-    The name **Props** is not merely a shorthand for 'properties' (though we do shove plenty of those in there). It’s a direct reference to a **prop**—the heavy-duty timber or steel beam that prevents a structure from an embarrassing collapse. For the sports fans, it’s also a lovingly crafted nod to the rugby position: the broad-shouldered stalwarts who provide the primary structural support for the scrum. Much like its on-field namesake, our `Props` struct isn't here to score the flashy tries; it's here to do the unsung heavy lifting that keeps the entire framework from falling over.
+    The name **Props** is not merely a shorthand for 'properties' (though we do shove plenty of those in there). It’s a direct reference to a **prop**, the heavy-duty timber or steel beam that prevents a structure from an embarrassing collapse. For the sports fans, it’s also a lovingly crafted nod to the rugby position: the broad-shouldered stalwarts who provide the primary structural support for the scrum. Much like its on-field namesake, our `Props` struct isn't here to score the flashy tries; it's here to do the unsung heavy lifting that keeps the entire framework from falling over.
 
 ## The Props Struct
 

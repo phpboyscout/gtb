@@ -24,6 +24,9 @@ Learn how the framework uses functional options for flexible, backward-compatibl
 ### [Interface Design Principles](interface-design.md)
 Comprehensive guide to all public interfaces in GTB, their purposes, and mock generation strategies.
 
+### [Logging Abstraction](logging.md)
+Understand the unified `logger.Logger` interface, backend selection (charmbracelet, slog, noop), and ecosystem integration patterns.
+
 
 ### [Project Structure](project-structure.md)
 Understand the filesystem layout of a GTB project and the reasoning behind it.

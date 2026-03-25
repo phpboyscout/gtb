@@ -45,3 +45,47 @@ Learn how to create and register a custom Initialiser for your feature.
 
 ### [Adding a Doctor Check](add-doctor-check.md)
 Register custom diagnostic checks so the `doctor` command validates your feature's health.
+
+## Output & Observability
+
+### [Add Scriptable JSON Output to a Command](scriptable-json-output.md)
+Use `pkg/output` to give any command a `--output json` flag for CI/CD and scripting integration.
+
+### [Switch to Structured JSON Logging for Containers](structured-json-logging.md)
+Replace the charmbracelet terminal logger with a `slog` JSON backend for daemon and container deployments.
+
+## Configuration
+
+### [React to Configuration Changes at Runtime](config-hot-reload.md)
+Use `config.Observable` and `AddObserver` to reconfigure long-running services without restarting.
+
+## Error Handling
+
+### [Write User-Facing Errors with Hints](user-facing-errors.md)
+Use `cockroachdb/errors` and `ErrorHandler` to produce actionable error messages with recovery suggestions.
+
+## AI Integration
+
+### [Build a Command with Structured AI Responses](structured-ai-responses.md)
+Use `chat.Ask` with a typed struct to receive deterministic, schema-validated responses from an AI provider.
+
+### [Add Tool Calling to an AI Command](ai-tool-calling.md)
+Expose Go functions as tools the AI can call, with the built-in ReAct loop managing the back-and-forth.
+
+## Version Control & Releases
+
+### [Configure Self-Updating](configure-self-updating.md)
+Wire up `UpdateCmd` with GitHub or GitLab as the release source for automatic binary updates.
+
+### [Automate GitHub Workflows](automate-github-workflows.md)
+Create pull requests, download release assets, and read file contents using `GHClient`.
+
+## Assets
+
+### [Embed and Register Custom Assets](embed-custom-assets.md)
+Ship default configs, templates, and data files with your tool using Go's `embed` package and `props.Assets`.
+
+## Services
+
+### [Add a gRPC Management Service](add-grpc-service.md)
+Register a gRPC server with the controller, wire the standard health protocol, and configure the port.

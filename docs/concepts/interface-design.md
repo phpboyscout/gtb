@@ -1,7 +1,7 @@
 ---
 title: Interface Design
 description: Comprehensive guide to GTB interfaces, their purposes, and implementation strategies.
-date: 2026-02-17
+date: 2026-03-25
 tags: [concepts, patterns, interfaces, go-idioms, testing]
 authors: [Matt Cockayne <matt@phpboyscout.com>]
 ---
@@ -30,6 +30,81 @@ GTB interfaces follow these key principles:
 
 ## Interface Reference
 
+### Logging
+
+#### Logger
+
+**Package:** `pkg/logger`
+**Purpose:** Unified logging abstraction accepted by all GTB packages instead of a concrete logger type.
+
+```go
+type Logger interface {
+    Debug(msg string, keyvals ...any)
+    Info(msg string, keyvals ...any)
+    Warn(msg string, keyvals ...any)
+    Error(msg string, keyvals ...any)
+    Fatal(msg string, keyvals ...any)
+    Debugf(format string, args ...any)
+    Infof(format string, args ...any)
+    Warnf(format string, args ...any)
+    Errorf(format string, args ...any)
+    Fatalf(format string, args ...any)
+    Print(msg any, keyvals ...any)
+    With(keyvals ...any) Logger
+    WithPrefix(prefix string) Logger
+    SetLevel(level Level)
+    GetLevel() Level
+    SetFormatter(f Formatter)
+    Handler() slog.Handler
+}
+```
+
+**Implementations:** `NewCharm` (CLI), `NewSlog` (observability stacks), `NewNoop` (tests)
+
+**Key Design Decisions:**
+
+- Decouples all GTB packages from `*slog.Logger` and `*log.Logger` — backends are swappable
+- `Handler()` provides slog ecosystem interoperability without exposing a concrete type
+- `NewNoop()` eliminates test boilerplate; `NewSlog` enables OpenTelemetry, Zap, Zerolog bridges
+
+**Usage Example:**
+
+```go
+l := logger.NewCharm(os.Stderr, logger.WithLevel(logger.InfoLevel))
+props := &props.Props{Logger: l}
+```
+
+See [Logger component documentation](../components/logger.md) for the full backend reference.
+
+---
+
+### Props Provider Interfaces
+
+GTB packages that need only a subset of `Props` declare narrow provider
+interfaces. This makes dependencies explicit and keeps test setup minimal.
+
+```go
+type LoggerProvider interface {
+    GetLogger() logger.Logger
+}
+
+type ConfigProvider interface {
+    GetConfig() config.Containable
+}
+
+type ErrorHandlerProvider interface {
+    GetErrorHandler() errorhandling.ErrorHandler
+}
+```
+
+**Key Design Decisions:**
+
+- Packages declare only the provider interfaces they need
+- `*props.Props` satisfies all provider interfaces
+- Tests pass a minimal struct implementing only the required interface
+
+---
+
 ### Configuration Interfaces
 
 #### Containable
@@ -55,7 +130,7 @@ type Containable interface {
     AddObserver(o Observable)
     AddObserverFunc(f func(Containable, chan error))
     ToJSON() string
-    Dump()
+    Dump(w io.Writer)
 }
 ```
 
@@ -243,33 +318,59 @@ client.Ask("Analyse this code for issues", &result)
 
 ### Service Lifecycle
 
-#### Controllable
+#### Controllable (composed interface)
 
-**Package:** `pkg/controls`  
+**Package:** `pkg/controls`
 **Purpose:** Manage multiple concurrent services with coordinated lifecycle.
 
+`Controllable` is a composition of four focused role interfaces:
+
 ```go
-type Controllable interface {
-    Messages() chan Message
-    Health() chan HealthMessage
-    Errors() chan error
-    Signals() chan os.Signal
+// Runner: lifecycle and service registration.
+type Runner interface {
+    Start()
+    Stop()
+    Status() HealthReport
+    IsRunning() bool
+    IsStopped() bool
+    IsStopping() bool
+    Register(id string, opts ...ServiceOption)
+}
+
+// StateAccessor: read access to controller state and context.
+type StateAccessor interface {
+    GetState() State
+    SetState(state State)
+    GetContext() context.Context
+    GetLogger() logger.Logger
+}
+
+// Configurable: controller configuration setters (used by ControllerOpt).
+type Configurable interface {
     SetErrorsChannel(errs chan error)
     SetMessageChannel(control chan Message)
     SetSignalsChannel(sigs chan os.Signal)
     SetHealthChannel(health chan HealthMessage)
     SetWaitGroup(wg *sync.WaitGroup)
-    Start()
-    Stop()
-    GetContext() context.Context
-    SetState(state State)
-    GetState() State
-    SetLogger(logger *slog.Logger)
-    GetLogger() *slog.Logger
-    IsRunning() bool
-    IsStopped() bool
-    IsStopping() bool
-    Register(id string, start StartFunc, stop StopFunc, status StatusFunc)
+    SetShutdownTimeout(d time.Duration)
+    SetLogger(l logger.Logger)
+}
+
+// ChannelProvider: access to controller channels.
+type ChannelProvider interface {
+    Messages() chan Message
+    Health() chan HealthMessage
+    Errors() chan error
+    Signals() chan os.Signal
+}
+
+// Controllable composes all five interfaces.
+type Controllable interface {
+    Runner
+    HealthReporter
+    StateAccessor
+    Configurable
+    ChannelProvider
 }
 ```
 
@@ -277,8 +378,9 @@ type Controllable interface {
 
 **Key Design Decisions:**
 
-- Shared channels for inter-service communication
-- State machine for lifecycle tracking (`Unknown → Running → Stopping → Stopped`)
+- Narrow role interfaces allow packages to declare only what they use — most consumers only need `Runner`, `HealthReporter`, or `ChannelProvider`
+- `ControllerOpt` functions accept `Configurable`, not `Controllable`, to enforce the narrowest dependency
+- `SetLogger` accepts `logger.Logger` (not `*slog.Logger`) for backend-agnostic logging
 - Built-in OS signal handling for graceful shutdown
 
 ---

@@ -50,7 +50,7 @@ By writing to a temporary file first and then performing a rename, we ensure tha
 The core engine (`pkg/setup/update.go`) that communicates with GitHub, compares semantic versions, and manages the local filesystem during the update.
 
 ### `IsLatestVersion`
-A utility that handles the logic of comparing the `CurrentVersion` (compiled into the binary) against the latest GitHub release. It handles edge cases like "future" versions or development builds.
+A method on `SelfUpdater` that compares the `CurrentVersion` (compiled into the binary via ldflags) against the latest GitHub release. It handles edge cases like future versions and development builds using `pkg/version.CompareVersions` and `IsDevelopment` detection.
 
 ## Testability via Abstraction
 
