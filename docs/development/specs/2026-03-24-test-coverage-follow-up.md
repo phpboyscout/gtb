@@ -1,8 +1,8 @@
 ---
 title: "Test Coverage Follow-Up Specification"
-description: "Address remaining test coverage gaps in pkg/cmd/update, pkg/chat, pkg/vcs/repo, pkg/vcs/github, internal/cmd/generate, and pkg/docs to meet project coverage targets."
+description: "Address remaining test coverage gaps across packages to meet project coverage targets. Original six packages expanded to seventeen after Gemini partially implemented the spec."
 date: 2026-03-24
-status: DRAFT
+status: IN PROGRESS
 tags:
   - specification
   - testing
@@ -24,40 +24,72 @@ Date
 :   24 March 2026
 
 Status
-:   DRAFT
+:   IN PROGRESS
 
 ---
 
 ## Overview
 
-The initial test coverage gaps specification (2026-03-21, IMPLEMENTED) addressed several `pkg/` packages that were below target. A subsequent review has identified six additional packages that remain below their coverage thresholds. This spec defines a prioritised plan to close those remaining gaps.
+The initial test coverage gaps specification (2026-03-21, IMPLEMENTED) addressed several `pkg/` packages that were below target. A subsequent review identified six additional packages that remained below their coverage thresholds. Gemini partially implemented this spec, completing `pkg/cmd/update` and `pkg/chat` but leaving the remaining four original packages untouched.
 
-### Remaining Coverage Gaps
+A further review (2026-03-25) expanded the scope to cover additional packages that have fallen below acceptable thresholds since the spec was written. Several packages contain code that is inherently difficult to test automatically — targets for those are set conservatively with explicit exclusion lists.
 
-| Package | Current Coverage | Target | Priority |
-|---------|-----------------|--------|----------|
-| `pkg/cmd/update` | 7.4% | 90% | High -- self-update is critical path |
-| `pkg/chat` | 26.6% | 90% | High -- AI integration is core feature |
-| `pkg/vcs/repo` | 13.5% | 90% | High -- VCS abstraction for updates |
-| `pkg/vcs/github` | 36.8% | 90% | Medium -- GitHub API operations |
-| `internal/cmd/generate` | 7.4% | 60%+ | Medium -- CLI generation entry point |
-| `pkg/docs` | 15.1% | 60%+ | Medium -- TUI docs browser |
+---
+
+## Coverage Targets
+
+| Package | Baseline (spec) | Gemini result | Current | **Target** | Notes |
+|---------|-----------------|---------------|---------|------------|-------|
+| `pkg/cmd/update` | 7.4% | 91.1% | 91.1% | ✅ **DONE** | |
+| `pkg/chat` | 26.6% | 90.3% | 90.3% | ✅ **DONE** | |
+| `pkg/vcs/repo` | 13.5% | — | 57.6% | **70%** | go-git/billyfs coupling; network ops excluded |
+| `pkg/vcs/github` | 36.8% | — | 36.8% | **70%** | httptest pattern established; OAuth excluded |
+| `pkg/vcs/gitlab` | *(added)* | — | 62.9% | **80%** | Good patterns; edge cases only |
+| `internal/cmd/generate` | 7.4% | — | 7.3% | **35%** | ~70% is huh forms; pure logic only |
+| `pkg/docs` | 15.1% | — | 15.1% | **40%** | `tui.go` (1079 lines) excluded entirely |
+| `pkg/setup/ai` | *(added)* | — | 43.7% | **70%** | Form builders excluded |
+| `pkg/setup/github` | *(added)* | — | 38.7% | **65%** | SSH gen/TUI excluded; mocks available |
+| `pkg/props` | *(added)* | — | 58.1% | **80%** | Data transforms mostly testable |
+| `pkg/config` | *(added)* | — | 59.8% | **70%** | File-watcher (fsnotify) excluded |
+| `pkg/cmd/root` | *(added)* | — | 59.4% | **70%** | `newRootPreRunE` orchestration excluded |
+| `pkg/setup` | *(added)* | — | 70.5% | **80%** | |
+| `pkg/forms` | *(added)* | — | 67.9% | **80%** | |
+| `pkg/utils` | *(added)* | — | 64.3% | **80%** | |
+| `pkg/cmd/initialise` | *(added)* | — | 75.0% | **85%** | |
+| `pkg/errorhandling` | *(added)* | — | 78.7% | **85%** | |
+| `internal/agent` | *(added)* | — | 59.0% | **70%** | *(deferred — needs exploratory pass)* |
+
+---
+
+## Coverage Exclusions
+
+The following code categories are explicitly out of scope for automated test coverage. Attempting to test these would produce brittle, high-maintenance tests with little safety-net value.
+
+| Category | Location | Reason |
+|----------|----------|--------|
+| Bubble Tea TUI model | `pkg/docs/tui.go` (1079 lines) | Requires simulated keyboard events and render-output snapshot assertions |
+| `charmbracelet/huh` form builders | `pkg/setup/ai`, `pkg/setup/github`, `internal/cmd/generate` | Form lifecycle exercised by integration/manual testing |
+| `pkg/cmd/root/newRootPreRunE` | `pkg/cmd/root/root.go` | Orchestrates filesystem, config, logging, forms, and network; integration-level only |
+| SSH key generation with passphrase TUI | `pkg/vcs/repo/GetSSHKey` | Interactive `huh.Input` passphrase prompt |
+| OAuth / GitHub CLI login flow | `pkg/vcs/github/login.go` | External OAuth device-flow; no mock boundary |
+| File-system watcher | `pkg/config` `watchConfig`/`WatchConfig` | fsnotify callback; requires real filesystem event |
+| VCS network operations | `pkg/vcs/repo.OpenInMemory`, `Clone` with remote URLs | Require real network; covered by integration tests |
 
 ---
 
 ## Design Decisions
 
-**Black-box testing (package_test)**: All new tests use external test packages (`package_test`) to validate the public surface only. This ensures tests remain resilient to internal refactoring.
+**Black-box testing (`package_test`)**: All new tests use external test packages to validate the public surface only.
 
-**Table-driven tests with `t.Parallel()`**: Every test function runs its subtests in parallel where safe, improving test suite speed and catching race conditions early.
+**Table-driven tests with `t.Parallel()`**: Every test function runs subtests in parallel where safe.
 
-**Afero `NewMemMapFs()` for filesystem**: All filesystem interactions are tested against an in-memory filesystem. No test touches the real filesystem except where OS-level operations (e.g., symlinks, exec) require it.
+**Afero `NewMemMapFs()` for filesystem**: All filesystem interactions use in-memory filesystem. Real filesystem only where OS-level operations (symlinks, exec) require it.
 
-**Mockery-generated mocks for interfaces**: All interface dependencies are mocked using mockery/v3-generated mocks. Hand-rolled mocks are not permitted for interfaces that already have generated counterparts.
+**Mockery-generated mocks**: All interface dependencies use mockery/v3-generated mocks. Hand-rolled mocks not permitted for interfaces with generated counterparts.
 
-**`t.Cleanup()` over `defer`**: Resource cleanup uses `t.Cleanup()` to ensure cleanup runs even when subtests fail, and to keep cleanup registration close to resource creation.
+**`t.Cleanup()` over `defer`**: Resource cleanup uses `t.Cleanup()` to ensure cleanup runs even when subtests fail.
 
-**Context propagation testing**: Every function accepting a `context.Context` is tested with cancelled, deadline-exceeded, and nil-parent contexts to verify proper propagation.
+**Existing `httptest` mock-server pattern**: `pkg/vcs/github` already uses `httptest.NewServer` in `client_coverage_test.go` — extend this pattern, do not introduce new testing frameworks.
 
 ---
 
@@ -67,327 +99,95 @@ None. This spec adds tests only.
 
 ---
 
-## Internal Implementation
-
-### Priority 1: `pkg/cmd/update` (7.4% to 90%)
-
-The self-update command is a critical user-facing path. Tests must cover:
-
-- **Version comparison logic**: Current version vs latest release, already-up-to-date, downgrade prevention.
-- **Binary replacement flow**: Mock the download, checksum verification, and file replacement steps using afero.
-- **Error paths**: Network failure during release check, missing permissions for binary replacement, corrupt download, checksum mismatch.
-- **Flag handling**: `--force`, `--version`, dry-run behaviour.
-
-```go
-func TestUpdateCmd_AlreadyUpToDate(t *testing.T) {
-    t.Parallel()
-    tests := []struct {
-        name           string
-        currentVersion string
-        latestVersion  string
-        expectUpdate   bool
-    }{
-        {"same version", "1.2.3", "1.2.3", false},
-        {"newer available", "1.2.3", "1.3.0", true},
-        {"dev version", "dev", "1.0.0", true},
-        {"ahead of latest", "2.0.0", "1.9.9", false},
-    }
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            t.Parallel()
-            // ... mock release provider, assert update/no-update
-        })
-    }
-}
-```
-
-### Priority 2: `pkg/chat` (26.6% to 90%)
-
-The chat package provides AI provider integrations. The prior spec covered some provider paths; this follow-up targets the remaining uncovered surface:
-
-- **Provider initialisation errors**: Missing API keys, invalid base URLs, unsupported model names.
-- **Response parsing edge cases**: Empty responses, malformed JSON, partial streaming chunks, unexpected stop reasons.
-- **Conversation context management**: Multi-turn history, token limit handling, system prompt injection.
-- **Timeout and retry behaviour**: Provider-specific timeout handling, context cancellation mid-stream.
-- **Error wrapping**: All errors must be wrapped with `cockroachdb/errors` and carry appropriate sentinel types.
-
-```go
-func TestClaudeProvider_Ask_MissingAPIKey(t *testing.T) {
-    t.Parallel()
-    provider, err := NewClaudeProvider(Config{APIKey: ""})
-    assert.Error(t, err)
-    // Verify error is a configuration error, not a runtime error
-}
-
-func TestClaudeProvider_Ask_MalformedResponse(t *testing.T) {
-    t.Parallel()
-    server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        w.Write([]byte(`{"content": "not-an-array"}`))
-    }))
-    t.Cleanup(server.Close)
-    // ... assert appropriate error
-}
-```
-
-### Priority 3: `pkg/vcs/repo` (13.5% to 90%)
-
-The repo package provides VCS abstraction for repository operations:
-
-- **Clone/pull operations**: Mock git commands, test success and failure paths.
-- **Branch management**: Create, switch, delete branches with mock VCS backend.
-- **Tag operations**: List, create, verify tags.
-- **Remote management**: Add, remove, validate remotes.
-- **Working directory state**: Clean, dirty, untracked files detection.
-
-```go
-func TestRepo_DetectDirtyState(t *testing.T) {
-    t.Parallel()
-    tests := []struct {
-        name     string
-        status   string
-        expected bool
-    }{
-        {"clean repo", "", false},
-        {"modified files", " M file.go", true},
-        {"untracked files", "?? new.go", true},
-        {"staged changes", "A  added.go", true},
-    }
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            t.Parallel()
-            // ... mock git status output
-        })
-    }
-}
-```
-
-### Priority 4: `pkg/vcs/github` (36.8% to 90%)
-
-GitHub API operations need thorough mock HTTP server testing:
-
-- **Release operations**: Create release, upload asset, download asset, list releases.
-- **Rate limiting**: 403 responses with `Retry-After` headers, secondary rate limits.
-- **Pagination**: Multi-page list responses with Link headers.
-- **Authentication**: Token validation, missing token, expired token.
-- **Asset download**: Redirect following, content-type validation, partial download recovery.
-
-```go
-func TestGitHubClient_DownloadReleaseAsset_RedirectChain(t *testing.T) {
-    t.Parallel()
-    redirectCount := 0
-    server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        if redirectCount < 2 {
-            redirectCount++
-            http.Redirect(w, r, "/next", http.StatusFound)
-            return
-        }
-        w.Write([]byte("asset-content"))
-    }))
-    t.Cleanup(server.Close)
-    // ... verify asset downloaded after redirects
-}
-
-func TestGitHubClient_RateLimited(t *testing.T) {
-    t.Parallel()
-    server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        w.Header().Set("Retry-After", "1")
-        w.WriteHeader(http.StatusForbidden)
-    }))
-    t.Cleanup(server.Close)
-    // ... verify rate limit error is returned with appropriate type
-}
-```
-
-### Priority 5: `internal/cmd/generate` (7.4% to 60%+)
-
-The CLI generation entry point orchestrates code generation:
-
-- **Manifest parsing**: Valid manifest, missing fields, malformed YAML.
-- **Template execution**: Successful generation, template errors, missing template files.
-- **Dry-run mode**: Verify output is printed but no files are written.
-- **Debug logging**: Verify debug output when enabled.
-- **File conflict handling**: Existing files, permission errors.
-
-```go
-func TestGenerateCmd_DryRun(t *testing.T) {
-    t.Parallel()
-    fs := afero.NewMemMapFs()
-    // ... set up manifest and templates in memory
-    // Execute with dry-run flag
-    // Assert no files written to fs
-    // Assert expected output contains generated content
-}
-```
-
-### Priority 6: `pkg/docs` (15.1% to 60%+)
-
-The TUI docs browser needs broader coverage:
-
-- **MkDocs config parsing**: Valid config, missing nav, empty nav, deeply nested sections.
-- **Markdown rendering**: Headings, code blocks, tables, links, images.
-- **Navigation state**: Forward/back, breadcrumb generation, section expansion.
-- **Search functionality**: Keyword matching, no results, special characters.
-- **Filesystem edge cases**: Missing docs directory, unreadable files, broken symlinks.
-
-```go
-func TestDocsBrowser_MissingDocsDir(t *testing.T) {
-    t.Parallel()
-    fs := afero.NewMemMapFs()
-    // Do not create docs directory
-    browser, err := NewBrowser(fs, "/project")
-    assert.Error(t, err)
-}
-
-func TestDocsBrowser_DeeplyNestedNav(t *testing.T) {
-    t.Parallel()
-    fs := afero.NewMemMapFs()
-    mkdocsYaml := `nav:
-  - Level1:
-    - Level2:
-      - Level3:
-        - Level4: deep/page.md`
-    afero.WriteFile(fs, "/project/mkdocs.yml", []byte(mkdocsYaml), 0644)
-    // ... verify four-level nesting is parsed correctly
-}
-```
-
----
-
-## Project Structure
-
-```
-pkg/cmd/update/
-├── update_test.go          <- MODIFIED: comprehensive table-driven tests
-pkg/chat/
-├── claude_test.go          <- MODIFIED: edge cases, error paths
-├── openai_test.go          <- MODIFIED: edge cases, error paths
-├── gemini_test.go          <- MODIFIED: edge cases, error paths
-├── testhelpers_test.go     <- MODIFIED: additional shared helpers
-pkg/vcs/repo/
-├── repo_test.go            <- NEW/MODIFIED: mock VCS backend tests
-pkg/vcs/github/
-├── client_test.go          <- MODIFIED: rate limiting, pagination, auth tests
-├── release_test.go         <- MODIFIED: asset download, redirect tests
-internal/cmd/generate/
-├── generate_test.go        <- MODIFIED: manifest parsing, dry-run, debug tests
-pkg/docs/
-├── docs_test.go            <- MODIFIED: nav parsing, search, rendering tests
-```
-
----
-
-## Testing Strategy
-
-### Test Categories
-
-| Category | Packages | Approach |
-|----------|----------|----------|
-| CLI commands | `pkg/cmd/update` | Mock release provider, afero for binary replacement |
-| AI providers | `pkg/chat` | `httptest.Server` with provider-specific responses |
-| VCS abstraction | `pkg/vcs/repo` | Mock git command execution |
-| HTTP API client | `pkg/vcs/github` | `httptest.Server` with GitHub API responses |
-| Code generation | `internal/cmd/generate` | Afero for filesystem, mock templates |
-| TUI browser | `pkg/docs` | Afero for filesystem, mock MkDocs config |
-
-### Testing Patterns
-
-All tests must follow these patterns:
-
-1. **Table-driven**: Each test function defines a `tests` slice of structs with named fields.
-2. **Parallel execution**: `t.Parallel()` at both the test function and subtest level.
-3. **Black-box**: Use `package_test` naming to test only the exported API.
-4. **Cleanup**: `t.Cleanup()` for HTTP servers, temporary resources, and mock teardown.
-5. **Context testing**: Every context-accepting function tested with cancelled and timed-out contexts.
-6. **Error assertions**: Use `errors.Is` and `errors.As` from `cockroachdb/errors` for error type checking.
-
-### Coverage Targets
-
-| Package | Current | Target |
-|---------|---------|--------|
-| `pkg/cmd/update` | 7.4% | 90% |
-| `pkg/chat` | 26.6% | 90% |
-| `pkg/vcs/repo` | 13.5% | 90% |
-| `pkg/vcs/github` | 36.8% | 90% |
-| `internal/cmd/generate` | 7.4% | 60%+ |
-| `pkg/docs` | 15.1% | 60%+ |
-
----
-
-## Backwards Compatibility
-
-No breaking changes. This spec adds tests only.
-
----
-
-## Future Considerations
-
-- **Coverage CI gate**: Enforce per-package coverage thresholds in CI, failing the build if any package drops below its target.
-- **Fuzz testing**: `pkg/vcs/github` response parsing and `pkg/docs` YAML parsing are strong candidates for Go's native fuzz testing.
-- **Integration test tag**: A `//go:build integration` tag for tests that exercise real provider APIs, run only in CI with appropriate secrets.
-- **Mutation testing**: Once coverage targets are met, mutation testing can identify tests that pass without meaningful assertions.
-- **Benchmark suite**: `pkg/chat` response parsing and `pkg/docs` navigation rendering may benefit from benchmarks as the project scales.
-
----
-
 ## Implementation Phases
 
-### Phase 1 -- Critical Path (pkg/cmd/update)
-1. Mock the release provider interface and binary replacement filesystem operations
-2. Add table-driven tests for version comparison, update flow, and error paths
-3. Test flag handling (`--force`, `--version`)
-4. Achieve 90%+ coverage
+### Phase 1 (complete) — `pkg/cmd/update`, `pkg/chat`
 
-### Phase 2 -- Core Feature (pkg/chat)
-1. Extend shared test helpers in `testhelpers_test.go`
-2. Add provider initialisation error tests for all three providers
-3. Add response parsing edge case tests (malformed JSON, empty responses, partial chunks)
-4. Add context propagation and timeout tests
-5. Achieve 90%+ coverage
+Completed by Gemini. Both packages now at ≥90%.
 
-### Phase 3 -- VCS Packages (pkg/vcs/repo, pkg/vcs/github)
-1. Create mock git command executor for `pkg/vcs/repo`
-2. Add tests for clone, pull, branch, tag, and remote operations
-3. Add rate limiting, pagination, and auth tests for `pkg/vcs/github`
-4. Add asset download redirect and error path tests
-5. Achieve 90%+ coverage for both
+### Phase 2 — Easy wins: pure logic functions
 
-### Phase 4 -- Generation and Docs (internal/cmd/generate, pkg/docs)
-1. Add manifest parsing and template execution tests for `internal/cmd/generate`
-2. Add dry-run and debug logging verification tests
-3. Extend `pkg/docs` tests for nav parsing edge cases and search
-4. Achieve 60%+ coverage for both
+Packages: `pkg/setup/ai`, `pkg/vcs/gitlab`, `pkg/utils`
+
+- `pkg/setup/ai`: `maskKey()`, `providerEnvVar()`, `isValidProvider()` — table-driven unit tests
+- `pkg/vcs/gitlab`: network-error edge cases in `DownloadReleaseAsset` using existing `httptest` pattern
+- `pkg/utils`: per-function unit tests for any currently uncovered utilities
+
+### Phase 3 — VCS packages: extend existing mock infrastructure
+
+Package: `pkg/vcs/github`
+
+- `release.go` accessor method unit tests (no server needed)
+- `NewReleaseProvider()`, `GetLatestRelease()`, `GetReleaseByTag()`, `ListReleases()` via mock HTTP server
+- `GetReleaseAssets()`, `GetReleaseAssetID()`, error paths
+
+### Phase 4 — VCS repo: local git operations
+
+Package: `pkg/vcs/repo`
+
+- Extend `repo_unit_test.go` pattern (real `t.TempDir()` + `git.PlainInit`, no network)
+- Cover: `CreateBranch`, `WalkTree`, `FileExists`, `DirectoryExists`, `GetFile`, `AddToFS`, getter/setter methods
+- Excluded: `OpenInMemory`, `Clone` (network), `GetSSHKey` passphrase path
+
+### Phase 5 — Setup packages
+
+Packages: `pkg/setup/github`, `pkg/setup/ai` (deeper pass)
+
+- SSH key discovery with `afero.MemMapFs`
+- `generateKey()` edge cases
+- Mock `MockGitHubClient` for `UploadKey` paths
+- `Configure()` with `mockConfig` for key-present/absent/invalid-provider paths
+
+### Phase 6 — Data and config
+
+Packages: `pkg/props`, `pkg/config`
+
+- `pkg/props`: `formatFlatKV`, `parseFlatKV`, `openMergedStructured`, `unmarshalStructuredData`, `marshalStructuredData`, `openMergedCSV`, `Mount`, `For`, `Merge`, `Exists`
+- `pkg/config`: error paths in `LoadFilesContainer`, `NewFilesContainer`, merging precedence
+
+### Phase 7 — Command packages
+
+Packages: `pkg/cmd/root`, `pkg/cmd/initialise`, `pkg/forms`, `pkg/errorhandling`
+
+- `pkg/cmd/root`: `configureLogging`, `shouldSkipUpdateCheck`, `extractFlags`, `mergeEmbeddedConfigs` — skip `newRootPreRunE`
+- Other packages: gap-closing based on per-file coverage analysis
+
+### Phase 8 — Internal generation (pure logic only)
+
+Package: `internal/cmd/generate`
+
+- `processAliasesInput`, `syncFlagsToOptions`, `syncOptionsToFlags`, `flagsSummary`, `findCommand`, `updateCommandMetadataRecursive`
+- Excluded: all `charmbracelet/huh` form builders and wizard orchestration
+
+### Phase 9 — Non-TUI docs coverage
+
+Package: `pkg/docs`
+
+- `AskAI()` with mock `ChatClient`
+- `Serve()` binding to `:0`
+- Remaining `docs.go` nav-parsing logic
+- `tui.go` explicitly excluded with comment in test file
 
 ---
 
 ## Verification
 
 ```bash
-# Full test suite with race detector
-just test
+just ci          # full suite: tidy, generate, test, test-race, lint
+just coverage    # HTML coverage report
 
-# Per-package coverage checks
-go test -coverprofile=coverage.out ./pkg/cmd/update/...
-go tool cover -func=coverage.out
-
-go test -coverprofile=coverage.out ./pkg/chat/...
-go tool cover -func=coverage.out
-
-go test -coverprofile=coverage.out ./pkg/vcs/repo/...
-go tool cover -func=coverage.out
-
-go test -coverprofile=coverage.out ./pkg/vcs/github/...
-go tool cover -func=coverage.out
-
-go test -coverprofile=coverage.out ./internal/cmd/generate/...
-go tool cover -func=coverage.out
-
-go test -coverprofile=coverage.out ./pkg/docs/...
-go tool cover -func=coverage.out
-
-# Overall coverage
-go test -coverprofile=coverage.out ./...
-go tool cover -func=coverage.out | tail -1
-
-# Lint
-golangci-lint run --fix
+# Per-package spot checks
+go test -coverprofile=coverage.out ./pkg/vcs/... && go tool cover -func=coverage.out
+go test -coverprofile=coverage.out ./pkg/setup/... && go tool cover -func=coverage.out
+go test -coverprofile=coverage.out ./internal/cmd/generate/... && go tool cover -func=coverage.out
+go test -coverprofile=coverage.out ./pkg/docs/... && go tool cover -func=coverage.out
 ```
+
+---
+
+## Future Considerations
+
+- **Coverage CI gate**: Enforce per-package coverage thresholds in CI, failing the build if any package drops below its target.
+- **Integration test tag**: `//go:build integration` for tests that exercise real git remotes or provider APIs.
+- **Fuzz testing**: `pkg/vcs/github` response parsing and `pkg/docs` YAML parsing are strong candidates.
+- **`internal/agent` and `internal/generator`**: Deferred from this spec — require a dedicated exploratory pass to set realistic targets.
