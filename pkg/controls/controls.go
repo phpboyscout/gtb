@@ -105,14 +105,21 @@ type HealthMessage struct {
 type Runner interface {
 	Start()
 	Stop()
-	Status() HealthReport
-	Liveness() HealthReport
-	Readiness() HealthReport
-	GetServiceInfo(name string) (ServiceInfo, bool)
 	IsRunning() bool
 	IsStopped() bool
 	IsStopping() bool
 	Register(id string, opts ...ServiceOption)
+}
+
+// HealthReporter provides read access to service health, liveness, and readiness
+// reports, and to per-service runtime information. Handlers and transports that
+// only need to query health should depend on this interface rather than the full
+// Controllable.
+type HealthReporter interface {
+	Status() HealthReport
+	Liveness() HealthReport
+	Readiness() HealthReport
+	GetServiceInfo(name string) (ServiceInfo, bool)
 }
 
 // StateAccessor provides read access to controller state and context.
@@ -143,9 +150,10 @@ type ChannelProvider interface {
 }
 
 // Controllable is the full controller interface, composed of all role-based interfaces.
-// Prefer using the narrower interfaces (Runner, Configurable, etc.) where possible.
+// Prefer using the narrower interfaces (Runner, HealthReporter, Configurable, etc.) where possible.
 type Controllable interface {
 	Runner
+	HealthReporter
 	StateAccessor
 	Configurable
 	ChannelProvider

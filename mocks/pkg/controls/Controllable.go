@@ -180,6 +180,66 @@ func (_c *MockControllable_GetLogger_Call) RunAndReturn(run func() logger.Logger
 	return _c
 }
 
+// GetServiceInfo provides a mock function for the type MockControllable
+func (_mock *MockControllable) GetServiceInfo(name string) (controls.ServiceInfo, bool) {
+	ret := _mock.Called(name)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetServiceInfo")
+	}
+
+	var r0 controls.ServiceInfo
+	var r1 bool
+	if returnFunc, ok := ret.Get(0).(func(string) (controls.ServiceInfo, bool)); ok {
+		return returnFunc(name)
+	}
+	if returnFunc, ok := ret.Get(0).(func(string) controls.ServiceInfo); ok {
+		r0 = returnFunc(name)
+	} else {
+		r0 = ret.Get(0).(controls.ServiceInfo)
+	}
+	if returnFunc, ok := ret.Get(1).(func(string) bool); ok {
+		r1 = returnFunc(name)
+	} else {
+		r1 = ret.Get(1).(bool)
+	}
+	return r0, r1
+}
+
+// MockControllable_GetServiceInfo_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetServiceInfo'
+type MockControllable_GetServiceInfo_Call struct {
+	*mock.Call
+}
+
+// GetServiceInfo is a helper method to define mock.On call
+//   - name string
+func (_e *MockControllable_Expecter) GetServiceInfo(name interface{}) *MockControllable_GetServiceInfo_Call {
+	return &MockControllable_GetServiceInfo_Call{Call: _e.mock.On("GetServiceInfo", name)}
+}
+
+func (_c *MockControllable_GetServiceInfo_Call) Run(run func(name string)) *MockControllable_GetServiceInfo_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockControllable_GetServiceInfo_Call) Return(serviceInfo controls.ServiceInfo, b bool) *MockControllable_GetServiceInfo_Call {
+	_c.Call.Return(serviceInfo, b)
+	return _c
+}
+
+func (_c *MockControllable_GetServiceInfo_Call) RunAndReturn(run func(name string) (controls.ServiceInfo, bool)) *MockControllable_GetServiceInfo_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetState provides a mock function for the type MockControllable
 func (_mock *MockControllable) GetState() controls.State {
 	ret := _mock.Called()
@@ -402,6 +462,50 @@ func (_c *MockControllable_IsStopping_Call) RunAndReturn(run func() bool) *MockC
 	return _c
 }
 
+// Liveness provides a mock function for the type MockControllable
+func (_mock *MockControllable) Liveness() controls.HealthReport {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Liveness")
+	}
+
+	var r0 controls.HealthReport
+	if returnFunc, ok := ret.Get(0).(func() controls.HealthReport); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Get(0).(controls.HealthReport)
+	}
+	return r0
+}
+
+// MockControllable_Liveness_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Liveness'
+type MockControllable_Liveness_Call struct {
+	*mock.Call
+}
+
+// Liveness is a helper method to define mock.On call
+func (_e *MockControllable_Expecter) Liveness() *MockControllable_Liveness_Call {
+	return &MockControllable_Liveness_Call{Call: _e.mock.On("Liveness")}
+}
+
+func (_c *MockControllable_Liveness_Call) Run(run func()) *MockControllable_Liveness_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockControllable_Liveness_Call) Return(healthReport controls.HealthReport) *MockControllable_Liveness_Call {
+	_c.Call.Return(healthReport)
+	return _c
+}
+
+func (_c *MockControllable_Liveness_Call) RunAndReturn(run func() controls.HealthReport) *MockControllable_Liveness_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Messages provides a mock function for the type MockControllable
 func (_mock *MockControllable) Messages() chan controls.Message {
 	ret := _mock.Called()
@@ -444,6 +548,50 @@ func (_c *MockControllable_Messages_Call) Return(messageCh chan controls.Message
 }
 
 func (_c *MockControllable_Messages_Call) RunAndReturn(run func() chan controls.Message) *MockControllable_Messages_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Readiness provides a mock function for the type MockControllable
+func (_mock *MockControllable) Readiness() controls.HealthReport {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Readiness")
+	}
+
+	var r0 controls.HealthReport
+	if returnFunc, ok := ret.Get(0).(func() controls.HealthReport); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Get(0).(controls.HealthReport)
+	}
+	return r0
+}
+
+// MockControllable_Readiness_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Readiness'
+type MockControllable_Readiness_Call struct {
+	*mock.Call
+}
+
+// Readiness is a helper method to define mock.On call
+func (_e *MockControllable_Expecter) Readiness() *MockControllable_Readiness_Call {
+	return &MockControllable_Readiness_Call{Call: _e.mock.On("Readiness")}
+}
+
+func (_c *MockControllable_Readiness_Call) Run(run func()) *MockControllable_Readiness_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockControllable_Readiness_Call) Return(healthReport controls.HealthReport) *MockControllable_Readiness_Call {
+	_c.Call.Return(healthReport)
+	return _c
+}
+
+func (_c *MockControllable_Readiness_Call) RunAndReturn(run func() controls.HealthReport) *MockControllable_Readiness_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -898,6 +1046,50 @@ func (_c *MockControllable_Start_Call) Return() *MockControllable_Start_Call {
 
 func (_c *MockControllable_Start_Call) RunAndReturn(run func()) *MockControllable_Start_Call {
 	_c.Run(run)
+	return _c
+}
+
+// Status provides a mock function for the type MockControllable
+func (_mock *MockControllable) Status() controls.HealthReport {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Status")
+	}
+
+	var r0 controls.HealthReport
+	if returnFunc, ok := ret.Get(0).(func() controls.HealthReport); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Get(0).(controls.HealthReport)
+	}
+	return r0
+}
+
+// MockControllable_Status_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Status'
+type MockControllable_Status_Call struct {
+	*mock.Call
+}
+
+// Status is a helper method to define mock.On call
+func (_e *MockControllable_Expecter) Status() *MockControllable_Status_Call {
+	return &MockControllable_Status_Call{Call: _e.mock.On("Status")}
+}
+
+func (_c *MockControllable_Status_Call) Run(run func()) *MockControllable_Status_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockControllable_Status_Call) Return(healthReport controls.HealthReport) *MockControllable_Status_Call {
+	_c.Call.Return(healthReport)
+	return _c
+}
+
+func (_c *MockControllable_Status_Call) RunAndReturn(run func() controls.HealthReport) *MockControllable_Status_Call {
+	_c.Call.Return(run)
 	return _c
 }
 

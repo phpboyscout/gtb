@@ -23,7 +23,7 @@ const (
 )
 
 // HealthHandler returns an http.HandlerFunc that responds with the controller's health report.
-func HealthHandler(controller controls.Controllable) http.HandlerFunc {
+func HealthHandler(controller controls.HealthReporter) http.HandlerFunc {
 	return func(w http.ResponseWriter, _ *http.Request) {
 		report := controller.Status()
 
@@ -40,7 +40,7 @@ func HealthHandler(controller controls.Controllable) http.HandlerFunc {
 }
 
 // LivenessHandler returns an http.HandlerFunc that responds with the controller's liveness report.
-func LivenessHandler(controller controls.Controllable) http.HandlerFunc {
+func LivenessHandler(controller controls.HealthReporter) http.HandlerFunc {
 	return func(w http.ResponseWriter, _ *http.Request) {
 		report := controller.Liveness()
 
@@ -57,7 +57,7 @@ func LivenessHandler(controller controls.Controllable) http.HandlerFunc {
 }
 
 // ReadinessHandler returns an http.HandlerFunc that responds with the controller's readiness report.
-func ReadinessHandler(controller controls.Controllable) http.HandlerFunc {
+func ReadinessHandler(controller controls.HealthReporter) http.HandlerFunc {
 	return func(w http.ResponseWriter, _ *http.Request) {
 		report := controller.Readiness()
 

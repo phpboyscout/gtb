@@ -17,6 +17,13 @@ import (
 	"github.com/phpboyscout/go-tool-base/pkg/logger"
 )
 
+// healthSource is the narrow interface required by RegisterHealthService: health
+// query methods plus context access for the background update goroutine lifecycle.
+type healthSource interface {
+	controls.HealthReporter
+	GetContext() context.Context
+}
+
 const healthUpdateInterval = 10 * time.Second
 
 // NewServer returns a new preconfigured grpc.Server.
@@ -31,7 +38,7 @@ func NewServer(cfg config.Containable, opt ...grpc.ServerOption) (*grpc.Server, 
 
 // RegisterHealthService registers the standard gRPC health service with the provided server,
 // wired to the controller's status.
-func RegisterHealthService(srv *grpc.Server, controller controls.Controllable) {
+func RegisterHealthService(srv *grpc.Server, controller healthSource) {
 	healthSrv := health.NewServer()
 	grpc_health_v1.RegisterHealthServer(srv, healthSrv)
 
