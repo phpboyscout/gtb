@@ -780,9 +780,10 @@ func TestWithFormOption(t *testing.T) {
 }
 
 func TestRootState_Isolation(t *testing.T) {
+	// Not parallel: calls NewCmdRoot twice, each of which seals the middleware
+	// registry. Reset between calls to prevent the second from panicking.
 	setup.ResetRegistryForTesting()
 	t.Cleanup(setup.ResetRegistryForTesting)
-	t.Parallel()
 
 	// Two independent root commands should have independent state
 	props1 := &p.Props{
@@ -803,6 +804,7 @@ func TestRootState_Isolation(t *testing.T) {
 	}
 
 	cmd1 := NewCmdRoot(props1)
+	setup.ResetRegistryForTesting() // reset before second NewCmdRoot seals again
 	cmd2 := NewCmdRoot(props2)
 
 	// They should be independent commands

@@ -1,7 +1,6 @@
 package setup
 
 import (
-	"flag"
 	"sync"
 
 	"github.com/spf13/cobra"
@@ -29,10 +28,6 @@ func RegisterMiddleware(feature props.FeatureCmd, mw ...Middleware) {
 	defer mu.Unlock()
 
 	if sealed {
-		if flag.Lookup("test.v") != nil {
-			return
-		}
-
 		panic("cannot register middleware after command registration is complete")
 	}
 
@@ -47,10 +42,6 @@ func RegisterGlobalMiddleware(mw ...Middleware) {
 	defer mu.Unlock()
 
 	if sealed {
-		if flag.Lookup("test.v") != nil {
-			return
-		}
-
 		panic("cannot register global middleware after command registration is complete")
 	}
 

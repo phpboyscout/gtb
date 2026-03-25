@@ -98,8 +98,16 @@ func TestRegisterGlobalMiddleware(t *testing.T) {
 	assert.Equal(t, []string{"global:before", "handler", "global:after"}, order)
 }
 
-// Test is intentionally removed because RegisterMiddleware ignores panics
-// during test execution to allow safe parallel testing of root commands.
+func TestSeal_PanicsOnRegistration(t *testing.T) {
+	resetRegistry(t)
+
+	Seal()
+
+	assert.Panics(t, func() { RegisterMiddleware(testFeature, testMiddleware("m", nil)) },
+		"RegisterMiddleware must panic after Seal")
+	assert.Panics(t, func() { RegisterGlobalMiddleware(testMiddleware("m", nil)) },
+		"RegisterGlobalMiddleware must panic after Seal")
+}
 
 func TestChain_GlobalBeforeFeature(t *testing.T) {
 	t.Parallel()
