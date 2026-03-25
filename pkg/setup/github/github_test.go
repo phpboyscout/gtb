@@ -1,22 +1,45 @@
 package github
 
 import (
+	"crypto/ed25519"
+	"crypto/rand"
+	"encoding/pem"
 	"path/filepath"
 	"testing"
 
 	"github.com/charmbracelet/huh"
+	gossh "golang.org/x/crypto/ssh"
+
+	mockVCS "github.com/phpboyscout/go-tool-base/mocks/pkg/vcs/github"
+	"github.com/phpboyscout/go-tool-base/pkg/config"
 	"github.com/phpboyscout/go-tool-base/pkg/logger"
+	"github.com/phpboyscout/go-tool-base/pkg/props"
+	githubvcs "github.com/phpboyscout/go-tool-base/pkg/vcs/github"
 	"github.com/spf13/afero"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-
-	mockVCS "github.com/phpboyscout/go-tool-base/mocks/pkg/vcs/github"
-	"github.com/phpboyscout/go-tool-base/pkg/config"
-	"github.com/phpboyscout/go-tool-base/pkg/props"
-	githubvcs "github.com/phpboyscout/go-tool-base/pkg/vcs/github"
 )
+
+// generateUnencryptedKeyPEM generates a fresh ed25519 private key in OpenSSH PEM format.
+func generateUnencryptedKeyPEM(t *testing.T) []byte {
+	t.Helper()
+	_, privKey, err := ed25519.GenerateKey(rand.Reader)
+	require.NoError(t, err)
+	block, err := gossh.MarshalPrivateKey(privKey, "")
+	require.NoError(t, err)
+	return pem.EncodeToMemory(block)
+}
+
+func newTestProps(t *testing.T) *props.Props {
+	t.Helper()
+	return &props.Props{
+		FS:     afero.NewMemMapFs(),
+		Logger: logger.NewNoop(),
+		Tool:   props.Tool{Name: "testtool"},
+	}
+}
 
 func TestDiscoverSSHKeys_Coverage(t *testing.T) {
 	// Setup Afero FS
@@ -169,6 +192,47 @@ func TestGitHubInitialiser(t *testing.T) {
 
 	assert.Equal(t, "mock-token", cfg.GetString("github.auth.value"))
 }
+func TestGitHubInitialiser_Name(t *testing.T) {
+	t.Parallel()
+	assert.Equal(t, "GitHub integration", (&GitHubInitialiser{}).Name())
+}
+
+func TestNewGitHubInitialiser_NilAssets(t *testing.T) {
+	t.Parallel()
+	p := newTestProps(t)
+	// Props.Assets is nil — must not panic
+	i := NewGitHubInitialiser(p, false, false)
+	require.NotNil(t, i)
+	assert.Equal(t, "GitHub integration", i.Name())
+}
+
+func TestNewCmdInitGitHub_Wiring(t *testing.T) {
+	t.Parallel()
+	p := newTestProps(t)
+	cmd := NewCmdInitGitHub(p)
+	assert.Equal(t, "github", cmd.Use)
+	assert.NotNil(t, cmd.Flags().Lookup("dir"))
+}
+
+func TestConfigure_SkipBoth(t *testing.T) {
+	t.Parallel()
+	p := newTestProps(t)
+	cfg := config.NewContainerFromViper(nil, viper.New())
+	i := &GitHubInitialiser{SkipLogin: true, SkipKey: true}
+	assert.NoError(t, i.Configure(p, cfg))
+}
+
+func TestConfigure_LoginAlreadySet_SkipKey(t *testing.T) {
+	t.Parallel()
+	p := newTestProps(t)
+	v := viper.New()
+	v.Set("github.auth.value", "already-set-token")
+	cfg := config.NewContainerFromViper(nil, v)
+	i := &GitHubInitialiser{SkipLogin: false, SkipKey: true}
+	// First if: SkipLogin=false but auth.value != "" so branch not entered
+	assert.NoError(t, i.Configure(p, cfg))
+}
+
 func TestIsGitHubConfigured(t *testing.T) {
 	fs := afero.NewMemMapFs()
 	p := &props.Props{
@@ -223,4 +287,241 @@ func TestIsGitHubConfigured(t *testing.T) {
 			assert.Equal(t, tt.expected, init.IsConfigured(config.NewContainerFromViper(nil, cfg)))
 		})
 	}
+}
+
+// --- SSH option funcs ---
+
+func TestWithSSHKeySelectForm(t *testing.T) {
+	t.Parallel()
+	called := false
+	opt := WithSSHKeySelectForm(func(_ *string, _ []huh.Option[string]) *huh.Form {
+		called = true
+		return nil
+	})
+	c := &configureSSHKeyConfig{}
+	opt(c)
+	require.NotNil(t, c.sshKeySelectFormCreator)
+	c.sshKeySelectFormCreator(nil, nil)
+	assert.True(t, called)
+}
+
+func TestWithSSHKeyPathForm(t *testing.T) {
+	t.Parallel()
+	called := false
+	opt := WithSSHKeyPathForm(func(_ *string) *huh.Form {
+		called = true
+		return nil
+	})
+	c := &configureSSHKeyConfig{}
+	opt(c)
+	require.NotNil(t, c.sshKeyPathFormCreator)
+	c.sshKeyPathFormCreator(nil)
+	assert.True(t, called)
+}
+
+func TestWithGenerateKeyOptions(t *testing.T) {
+	t.Parallel()
+	noop := func(_ *generateKeyConfig) {}
+	opt := WithGenerateKeyOptions(noop)
+	c := &configureSSHKeyConfig{}
+	opt(c)
+	assert.Len(t, c.generateKeyOpts, 1)
+}
+
+// --- validateSSHKey ---
+
+func TestValidateSSHKey_Valid(t *testing.T) {
+	t.Parallel()
+	p := newTestProps(t)
+	keyPEM := generateUnencryptedKeyPEM(t)
+	err := validateSSHKey(keyPEM, p)
+	assert.NoError(t, err)
+}
+
+func TestValidateSSHKey_Invalid(t *testing.T) {
+	t.Parallel()
+	p := newTestProps(t)
+	err := validateSSHKey([]byte("not-a-key"), p)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "not a valid private key")
+}
+
+// --- isValidSSHKey ---
+
+func TestIsValidSSHKey_Valid(t *testing.T) {
+	t.Parallel()
+	fs := afero.NewMemMapFs()
+	keyPEM := generateUnencryptedKeyPEM(t)
+	require.NoError(t, afero.WriteFile(fs, "/valid.key", keyPEM, 0o600))
+	assert.True(t, isValidSSHKey(fs, "/valid.key"))
+}
+
+func TestIsValidSSHKey_Invalid(t *testing.T) {
+	t.Parallel()
+	fs := afero.NewMemMapFs()
+	require.NoError(t, afero.WriteFile(fs, "/bad.key", []byte("garbage"), 0o600))
+	assert.False(t, isValidSSHKey(fs, "/bad.key"))
+}
+
+func TestIsValidSSHKey_ReadError(t *testing.T) {
+	t.Parallel()
+	fs := afero.NewMemMapFs()
+	// File does not exist → ReadFile fails → returns false
+	assert.False(t, isValidSSHKey(fs, "/nonexistent.key"))
+}
+
+// --- handleSSHKeySelection ---
+
+func TestHandleSSHKeySelection_Agent(t *testing.T) {
+	t.Parallel()
+	p := newTestProps(t)
+	cfg := config.NewContainerFromViper(nil, viper.New())
+	keyType, keyPath, err := handleSSHKeySelection(p, cfg, "agent", &configureSSHKeyConfig{})
+	require.NoError(t, err)
+	assert.Equal(t, "agent", keyType)
+	assert.Empty(t, keyPath)
+}
+
+func TestHandleSSHKeySelection_Default(t *testing.T) {
+	t.Parallel()
+	p := newTestProps(t)
+	cfg := config.NewContainerFromViper(nil, viper.New())
+	keyType, keyPath, err := handleSSHKeySelection(p, cfg, "/home/user/.ssh/id_ed25519", &configureSSHKeyConfig{})
+	require.NoError(t, err)
+	assert.Equal(t, "file", keyType)
+	assert.Equal(t, "/home/user/.ssh/id_ed25519", keyPath)
+}
+
+func TestHandleSSHKeySelection_Other_Error(t *testing.T) {
+	t.Parallel()
+	p := newTestProps(t)
+	cfg := config.NewContainerFromViper(nil, viper.New())
+	// Form returns nil, then tries to read a non-existent file.
+	opts := &configureSSHKeyConfig{
+		sshKeyPathFormCreator: func(s *string) *huh.Form {
+			*s = "/nonexistent/id_rsa"
+			return nil
+		},
+	}
+	_, _, err := handleSSHKeySelection(p, cfg, "other", opts)
+	assert.Error(t, err)
+}
+
+func TestHandleSSHKeySelection_Other_ValidKey(t *testing.T) {
+	t.Parallel()
+	p := newTestProps(t)
+	cfg := config.NewContainerFromViper(nil, viper.New())
+	keyPEM := generateUnencryptedKeyPEM(t)
+	require.NoError(t, afero.WriteFile(p.FS, "/test.key", keyPEM, 0o600))
+
+	opts := &configureSSHKeyConfig{
+		sshKeyPathFormCreator: func(s *string) *huh.Form {
+			*s = "/test.key"
+			return nil
+		},
+	}
+	keyType, keyPath, err := handleSSHKeySelection(p, cfg, "other", opts)
+	require.NoError(t, err)
+	assert.Equal(t, "file", keyType)
+	assert.Equal(t, "/test.key", keyPath)
+}
+
+func TestHandleSSHKeySelection_Generate(t *testing.T) {
+	homeDir := "/home/testuser"
+	t.Setenv("HOME", homeDir)
+
+	p := newTestProps(t)
+	cfg := config.NewContainerFromViper(nil, viper.New())
+
+	opts := &configureSSHKeyConfig{
+		generateKeyOpts: []GenerateKeyOption{
+			WithPassphraseForm(func(s *string) *huh.Form {
+				*s = ""
+				return nil
+			}),
+			WithUploadConfirmForm(func(b *bool) *huh.Form {
+				*b = false
+				return nil
+			}),
+		},
+	}
+	keyType, keyPath, err := handleSSHKeySelection(p, cfg, "generate", opts)
+	require.NoError(t, err)
+	assert.Equal(t, "file", keyType)
+	assert.Contains(t, keyPath, ".ssh/id_testtool_")
+}
+
+// --- ConfigureSSHKey ---
+
+func TestConfigureSSHKey_Agent(t *testing.T) {
+	homeDir := "/home/testuser"
+	t.Setenv("HOME", homeDir)
+
+	p := newTestProps(t)
+	cfg := config.NewContainerFromViper(nil, viper.New())
+
+	keyType, keyPath, err := ConfigureSSHKey(p, cfg,
+		WithSSHKeySelectForm(func(s *string, _ []huh.Option[string]) *huh.Form {
+			*s = "agent"
+			return nil
+		}),
+	)
+	require.NoError(t, err)
+	assert.Equal(t, "agent", keyType)
+	assert.Empty(t, keyPath)
+}
+
+func TestConfigureSSHKey_ExistingPath(t *testing.T) {
+	homeDir := "/home/testuser"
+	t.Setenv("HOME", homeDir)
+
+	p := newTestProps(t)
+	v := viper.New()
+	v.Set("github.ssh.key.path", "/home/testuser/.ssh/existing_key")
+	cfg := config.NewContainerFromViper(nil, v)
+
+	keyType, keyPath, err := ConfigureSSHKey(p, cfg,
+		WithSSHKeySelectForm(func(s *string, _ []huh.Option[string]) *huh.Form {
+			// Form not shown; targetKey is pre-populated from config.
+			return nil
+		}),
+	)
+	require.NoError(t, err)
+	assert.Equal(t, "file", keyType)
+	assert.Equal(t, "/home/testuser/.ssh/existing_key", keyPath)
+}
+
+// --- uploadSSHKeyToGitHub error paths ---
+
+func TestUploadSSHKeyToGitHub_ClientError(t *testing.T) {
+	t.Parallel()
+
+	original := newGitHubClientFunc
+	t.Cleanup(func() { newGitHubClientFunc = original })
+	newGitHubClientFunc = func(_ config.Containable) (githubvcs.GitHubClient, error) {
+		return nil, assert.AnError
+	}
+
+	p := newTestProps(t)
+	cfg := config.NewContainerFromViper(nil, viper.New())
+	err := uploadSSHKeyToGitHub(p, cfg, "keyname", []byte("pubkey"))
+	assert.Error(t, err)
+}
+
+func TestUploadSSHKeyToGitHub_UploadError(t *testing.T) {
+	t.Parallel()
+
+	mockClient := mockVCS.NewMockGitHubClient(t)
+	mockClient.EXPECT().UploadKey(mock.Anything, mock.Anything, mock.Anything).Return(assert.AnError)
+
+	original := newGitHubClientFunc
+	t.Cleanup(func() { newGitHubClientFunc = original })
+	newGitHubClientFunc = func(_ config.Containable) (githubvcs.GitHubClient, error) {
+		return mockClient, nil
+	}
+
+	p := newTestProps(t)
+	cfg := config.NewContainerFromViper(nil, viper.New())
+	err := uploadSSHKeyToGitHub(p, cfg, "keyname", []byte("pubkey"))
+	assert.Error(t, err)
 }
