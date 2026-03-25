@@ -3,6 +3,7 @@ package chat
 import (
 	"context"
 	"encoding/json"
+	"os"
 	"strings"
 
 	"github.com/anthropics/anthropic-sdk-go"
@@ -33,18 +34,28 @@ func newClaude(ctx context.Context, p *props.Props, cfg Config) (ChatClient, err
 	p.Logger.Info("Initialising Claude Chat")
 
 	token := cfg.Token
-	if token == "" {
+	if token == "" && p.Config != nil {
 		token = p.Config.GetString(ConfigKeyClaudeKey)
+	}
+
+	if token == "" {
+		token = os.Getenv(EnvClaudeKey)
 	}
 
 	if token == "" {
 		return nil, errors.New("Anthropic API key is required but not provided")
 	}
 
-	client := anthropic.NewClient(
+	opts := []option.RequestOption{
 		option.WithAPIKey(token),
 		option.WithHTTPClient(gtbhttp.NewClient()),
-	)
+	}
+
+	if cfg.BaseURL != "" {
+		opts = append(opts, option.WithBaseURL(cfg.BaseURL))
+	}
+
+	client := anthropic.NewClient(opts...)
 
 	c := &Claude{
 		props:  p,
@@ -61,6 +72,10 @@ func newClaude(ctx context.Context, p *props.Props, cfg Config) (ChatClient, err
 
 // Add appends a new user message to the chat session.
 func (c *Claude) Add(_ context.Context, prompt string) error {
+	if prompt == "" {
+		return errors.New("prompt cannot be empty")
+	}
+
 	c.messages = append(c.messages, anthropic.NewUserMessage(anthropic.NewTextBlock(prompt)))
 
 	return nil
@@ -68,8 +83,23 @@ func (c *Claude) Add(_ context.Context, prompt string) error {
 
 // Ask sends a question to the Claude chat client and expects a structured response.
 func (c *Claude) Ask(ctx context.Context, question string, target any) error {
+	if question == "" {
+		return errors.New("question cannot be empty")
+	}
+
 	c.messages = append(c.messages, anthropic.NewUserMessage(anthropic.NewTextBlock(question)))
 
+	params := c.buildAskParams()
+
+	resp, err := c.client.Messages.New(ctx, params)
+	if err != nil {
+		return errors.Newf("failed to call Anthropic API: %w", err)
+	}
+
+	return c.parseAskResponse(resp, target)
+}
+
+func (c *Claude) buildAskParams() anthropic.MessageNewParams {
 	model := c.cfg.Model
 	if model == "" {
 		model = DefaultModelClaude
@@ -95,14 +125,13 @@ func (c *Claude) Ask(ctx context.Context, question string, target any) error {
 		c.applyResponseSchema(&params, toolName)
 	}
 
-	resp, err := c.client.Messages.New(ctx, params)
-	if err != nil {
-		return errors.Newf("failed to call Anthropic API: %w", err)
-	}
+	return params
+}
 
+func (c *Claude) parseAskResponse(resp *anthropic.Message, target any) error {
 	for _, content := range resp.Content {
 		if content.Type == "tool_use" {
-			err = json.Unmarshal(content.Input, target)
+			err := json.Unmarshal(content.Input, target)
 			if err != nil {
 				return errors.Newf("failed to unmarshal Claude response: %w", err)
 			}

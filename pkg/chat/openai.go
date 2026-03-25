@@ -232,6 +232,10 @@ func (a *OpenAI) SetTools(tools []Tool) error {
 	oaiTools := make([]openai.ChatCompletionToolUnionParam, 0, len(tools))
 
 	for _, t := range tools {
+		if t.Parameters == nil {
+			return errors.Newf("tool %s parameters cannot be nil", t.Name)
+		}
+
 		params := map[string]any{
 			"type":       "object",
 			"properties": t.Parameters.Properties,

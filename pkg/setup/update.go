@@ -425,6 +425,10 @@ func (s *SelfUpdater) GetLatestVersionString(ctx context.Context) (string, error
 	return ver.FormatVersionString(release.GetTagName(), true), nil
 }
 
+func (s *SelfUpdater) GetCurrentVersion() string {
+	return s.CurrentVersion
+}
+
 func (s *SelfUpdater) extractAndInstallBinary(tarReader *tar.Reader, targetPath string) error {
 	tempFilePath := fmt.Sprintf("%s_", targetPath)
 

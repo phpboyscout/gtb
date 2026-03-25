@@ -11,6 +11,12 @@ import (
 	"github.com/phpboyscout/go-tool-base/pkg/props"
 )
 
+var (
+	// allow mocking in tests.
+	ExportExecCommand  = exec.CommandContext
+	ExportExecLookPath = exec.LookPath
+)
+
 func init() {
 	RegisterProvider(ProviderClaudeLocal, newClaudeLocal)
 }
@@ -28,7 +34,7 @@ type ClaudeLocal struct {
 // newClaudeLocal initializes a new ClaudeLocal chat client.
 // No API key is required — authentication is handled by the claude binary itself.
 func newClaudeLocal(ctx context.Context, p *props.Props, cfg Config) (ChatClient, error) {
-	if _, err := exec.LookPath("claude"); err != nil {
+	if _, err := ExportExecLookPath("claude"); err != nil {
 		return nil, errors.New(
 			"claude binary not found in PATH: install Claude Code from https://claude.ai/download " +
 				"and ensure it is authenticated before using ProviderClaudeLocal",
@@ -43,6 +49,10 @@ func newClaudeLocal(ctx context.Context, p *props.Props, cfg Config) (ChatClient
 
 // Add buffers a user message to be prepended to the next Chat or Ask call.
 func (c *ClaudeLocal) Add(_ context.Context, prompt string) error {
+	if prompt == "" {
+		return errors.New("prompt cannot be empty")
+	}
+
 	c.pending = append(c.pending, prompt)
 
 	return nil
@@ -51,6 +61,10 @@ func (c *ClaudeLocal) Add(_ context.Context, prompt string) error {
 // Ask sends a question to the local claude binary and unmarshals the structured response
 // into the target using --json-schema for schema-enforced output.
 func (c *ClaudeLocal) Ask(ctx context.Context, question string, target any) error {
+	if question == "" {
+		return errors.New("question cannot be empty")
+	}
+
 	combined := c.buildPrompt(question)
 
 	args := c.buildArgs(combined)
@@ -91,6 +105,10 @@ func (c *ClaudeLocal) SetTools(_ []Tool) error {
 
 // Chat sends a message to the local claude binary and returns the text response.
 func (c *ClaudeLocal) Chat(ctx context.Context, prompt string) (string, error) {
+	if prompt == "" {
+		return "", errors.New("prompt cannot be empty")
+	}
+
 	combined := c.buildPrompt(prompt)
 	args := c.buildArgs(combined)
 
@@ -149,7 +167,7 @@ type claudeResult struct {
 func (c *ClaudeLocal) runClaude(ctx context.Context, args []string) (result string, sessionID string, err error) {
 	c.props.Logger.Debug("ClaudeLocal subprocess", "args", args)
 
-	cmd := exec.CommandContext(ctx, "claude", args...)
+	cmd := ExportExecCommand(ctx, "claude", args...)
 
 	out, cmdErr := cmd.Output()
 	if cmdErr != nil {

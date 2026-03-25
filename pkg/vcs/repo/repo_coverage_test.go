@@ -47,7 +47,9 @@ func TestRepo_Commit(t *testing.T) {
 	require.NoError(t, err)
 
 	// Add to index
-	_, err = r.tree.Add("test.txt")
+	wt, err := r.repo.Worktree()
+	require.NoError(t, err)
+	_, err = wt.Add("test.txt")
 	require.NoError(t, err)
 
 	opts := &git.CommitOptions{
@@ -102,9 +104,11 @@ func TestRepo_CheckoutCommit(t *testing.T) {
 	require.NoError(t, err)
 
 	// Commit 1
+	wt, err := r.repo.Worktree()
+	require.NoError(t, err)
 	testFile := filepath.Join(tmpDir, "test1.txt")
 	_ = os.WriteFile(testFile, []byte("1"), 0644)
-	_, _ = r.tree.Add("test1.txt")
+	_, _ = wt.Add("test1.txt")
 	hash1, err := r.Commit("commit 1", &git.CommitOptions{
 		Author: &object.Signature{Name: "T", Email: "e", When: time.Now()},
 	})
@@ -113,7 +117,7 @@ func TestRepo_CheckoutCommit(t *testing.T) {
 	// Commit 2
 	testFile2 := filepath.Join(tmpDir, "test2.txt")
 	_ = os.WriteFile(testFile2, []byte("2"), 0644)
-	_, _ = r.tree.Add("test2.txt")
+	_, _ = wt.Add("test2.txt")
 	hash2, err := r.Commit("commit 2", &git.CommitOptions{
 		Author: &object.Signature{Name: "T", Email: "e", When: time.Now()},
 	})

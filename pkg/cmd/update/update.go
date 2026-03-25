@@ -24,8 +24,24 @@ func init() {
 	))
 }
 
-// semVerPattern matches semantic version strings in the format v0.0.0 or v0.0.0-suffix.
-var semVerPattern = regexp.MustCompile(`^v\d+\.\d+\.\d+(-\w+)?$`)
+var (
+	// semVerPattern matches semantic version strings in the format v0.0.0 or v0.0.0-suffix.
+	semVerPattern = regexp.MustCompile(`^v\d+\.\d+\.\d+(-\w+)?$`)
+
+	// allow mocking in tests.
+	ExportExecCommand = exec.CommandContext
+	ExportNewUpdater  = func(props *p.Props, version string, force bool) (Updater, error) {
+		return setup.NewUpdater(props, version, force)
+	}
+)
+
+// Updater defines the interface for self-updating functionality.
+type Updater interface {
+	GetLatestVersionString(ctx context.Context) (string, error)
+	Update(ctx context.Context) (string, error)
+	GetReleaseNotes(ctx context.Context, from, to string) (string, error)
+	GetCurrentVersion() string
+}
 
 func NewCmdUpdate(props *p.Props) *cobra.Command {
 	var updateCmd = &cobra.Command{
@@ -58,7 +74,7 @@ func NewCmdUpdate(props *p.Props) *cobra.Command {
 }
 
 func Update(ctx context.Context, props *p.Props, version string, force bool) error {
-	updater, err := setup.NewUpdater(props, version, force)
+	updater, err := ExportNewUpdater(props, version, force)
 	if err != nil {
 		return err
 	}
@@ -76,15 +92,15 @@ func Update(ctx context.Context, props *p.Props, version string, force bool) err
 	}
 
 	// update the config in the standard locations
-	updateConfig(ctx, props, binPath)
+	UpdateConfig(ctx, props, binPath)
 
 	if version == "" {
 		// we are in a standard upgrade
 		latestVersion, latestErr := updater.GetLatestVersionString(ctx)
 		if latestErr == nil {
-			releaseNotes, err := updater.GetReleaseNotes(ctx, updater.CurrentVersion, latestVersion)
+			releaseNotes, err := updater.GetReleaseNotes(ctx, updater.GetCurrentVersion(), latestVersion)
 			if err == nil {
-				styledNotes := renderMarkdown(releaseNotes)
+				styledNotes := RenderMarkdown(releaseNotes)
 				props.Logger.Print(styledNotes)
 			}
 		}
@@ -95,7 +111,7 @@ func Update(ctx context.Context, props *p.Props, version string, force bool) err
 	return nil
 }
 
-func updateConfig(ctx context.Context, props *p.Props, binPath string) {
+func UpdateConfig(ctx context.Context, props *p.Props, binPath string) {
 	if props.Tool.IsDisabled(p.InitCmd) {
 		props.Logger.Debug("Skipping config update as init command is disabled")
 	} else {
@@ -105,8 +121,8 @@ func updateConfig(ctx context.Context, props *p.Props, binPath string) {
 		}
 
 		for _, path := range updatePaths {
-			if _, err := os.Stat(path); err == nil {
-				cmd := exec.CommandContext(ctx, binPath, "init", "--dir", path, "--skip-login", "--skip-key")
+			if _, err := props.FS.Stat(path); err == nil {
+				cmd := ExportExecCommand(ctx, binPath, "init", "--dir", path, "--skip-login", "--skip-key")
 				cmd.Stdout = os.Stdout
 				cmd.Stderr = os.Stderr
 
@@ -119,8 +135,8 @@ func updateConfig(ctx context.Context, props *p.Props, binPath string) {
 	}
 }
 
-// renderMarkdown uses glamour to style markdown content.
-func renderMarkdown(content string) string {
+// RenderMarkdown uses glamour to style markdown content.
+func RenderMarkdown(content string) string {
 	// Get terminal width, fallback to 80 if detection fails
 	width := 80
 	if w, _, err := term.GetSize(os.Stdout.Fd()); err == nil && w > 0 {

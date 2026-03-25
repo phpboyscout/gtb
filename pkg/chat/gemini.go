@@ -3,6 +3,7 @@ package chat
 import (
 	"context"
 	"encoding/json"
+	"os"
 	"strings"
 
 	"github.com/cockroachdb/errors"
@@ -11,6 +12,11 @@ import (
 
 	gtbhttp "github.com/phpboyscout/go-tool-base/pkg/http"
 	"github.com/phpboyscout/go-tool-base/pkg/props"
+)
+
+var (
+	// allow mocking in tests.
+	ExportGenaiNewClient = genai.NewClient
 )
 
 func init() {
@@ -30,19 +36,14 @@ type Gemini struct {
 
 // newGemini initializes a new Gemini chat client.
 func newGemini(ctx context.Context, p *props.Props, cfg Config) (ChatClient, error) {
-	token := cfg.Token
-	if token == "" {
-		token = p.Config.GetString(ConfigKeyGeminiKey)
-	}
-
+	token := getGeminiToken(p, cfg)
 	if token == "" {
 		return nil, errors.New("Gemini API key is required")
 	}
 
-	client, err := genai.NewClient(ctx, &genai.ClientConfig{
-		APIKey:     token,
-		HTTPClient: gtbhttp.NewClient(),
-	})
+	clientConfig := buildGeminiClientConfig(token, cfg)
+
+	client, err := ExportGenaiNewClient(ctx, clientConfig)
 	if err != nil {
 		return nil, errors.Newf("failed to create gemini client: %w", err)
 	}
@@ -52,6 +53,46 @@ func newGemini(ctx context.Context, p *props.Props, cfg Config) (ChatClient, err
 		modelName = DefaultModelGemini
 	}
 
+	baseCfg := buildGeminiGenerateConfig(cfg)
+
+	return &Gemini{
+		client:  client,
+		model:   modelName,
+		config:  baseCfg,
+		cfg:     cfg,
+		history: make([]*genai.Content, 0),
+		tools:   make(map[string]Tool),
+		props:   p,
+	}, nil
+}
+
+func getGeminiToken(p *props.Props, cfg Config) string {
+	token := cfg.Token
+	if token == "" && p.Config != nil {
+		token = p.Config.GetString(ConfigKeyGeminiKey)
+	}
+
+	if token == "" {
+		token = os.Getenv(EnvGeminiKey)
+	}
+
+	return token
+}
+
+func buildGeminiClientConfig(token string, cfg Config) *genai.ClientConfig {
+	clientConfig := &genai.ClientConfig{
+		APIKey:     token,
+		HTTPClient: gtbhttp.NewClient(),
+	}
+
+	if cfg.BaseURL != "" {
+		clientConfig.HTTPOptions.BaseURL = cfg.BaseURL
+	}
+
+	return clientConfig
+}
+
+func buildGeminiGenerateConfig(cfg Config) *genai.GenerateContentConfig {
 	baseCfg := &genai.GenerateContentConfig{}
 	if cfg.SystemPrompt != "" {
 		baseCfg.SystemInstruction = &genai.Content{
@@ -66,19 +107,15 @@ func newGemini(ctx context.Context, p *props.Props, cfg Config) (ChatClient, err
 		}
 	}
 
-	return &Gemini{
-		client:  client,
-		model:   modelName,
-		config:  baseCfg,
-		cfg:     cfg,
-		history: make([]*genai.Content, 0),
-		tools:   make(map[string]Tool),
-		props:   p,
-	}, nil
+	return baseCfg
 }
 
 // Add appends a user message to the conversation history.
 func (g *Gemini) Add(_ context.Context, prompt string) error {
+	if prompt == "" {
+		return errors.New("prompt cannot be empty")
+	}
+
 	g.history = append(g.history, &genai.Content{
 		Role:  genai.RoleUser,
 		Parts: []*genai.Part{{Text: prompt}},
@@ -89,6 +126,10 @@ func (g *Gemini) Add(_ context.Context, prompt string) error {
 
 // Ask sends a question to the Gemini chat client and expects a structured response.
 func (g *Gemini) Ask(ctx context.Context, question string, target any) error {
+	if question == "" {
+		return errors.New("question cannot be empty")
+	}
+
 	askCfg := g.cloneConfig()
 	askCfg.ResponseMIMEType = "application/json"
 
@@ -135,6 +176,10 @@ func (g *Gemini) SetTools(tools []Tool) error {
 
 // Chat sends a message and returns the response content, handling tool calls internally.
 func (g *Gemini) Chat(ctx context.Context, prompt string) (string, error) {
+	if prompt == "" {
+		return "", errors.New("prompt cannot be empty")
+	}
+
 	chatCfg := g.cloneConfig()
 	chatCfg.ResponseMIMEType = ""
 	chatCfg.ResponseSchema = nil

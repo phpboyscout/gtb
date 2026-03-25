@@ -400,7 +400,7 @@ func (r *Repo) Clone(uri string, targetPath string, opts ...CloneOption) (*git.R
 	// Get the worktree
 	r.tree, err = r.repo.Worktree()
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to get worktree")
+		return r.repo, nil, errors.WithStack(err)
 	}
 
 	return r.repo, r.tree, nil
@@ -632,6 +632,10 @@ func NewRepo(props *props.Props, ops ...RepoOpt) (*Repo, error) {
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
+	}
+
+	if props.Config == nil {
+		return repo, nil
 	}
 
 	if props.Config.Has("github.ssh") {
