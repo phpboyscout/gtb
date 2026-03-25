@@ -227,6 +227,142 @@ func TestListReleases(t *testing.T) {
 	assert.Contains(t, releases, "v1.1.0")
 }
 
+func TestGetReleaseAssets(t *testing.T) {
+	id := int64(1)
+	name := "binary.tar.gz"
+
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/v3/repos/owner/repo/releases/tags/v1.0.0", r.URL.Path)
+		_ = json.NewEncoder(w).Encode(&github.RepositoryRelease{
+			Assets: []*github.ReleaseAsset{{ID: &id, Name: &name}},
+		})
+	}
+
+	server, client := setupMockGitHubServer(t, handler)
+	defer server.Close()
+
+	assets, err := client.GetReleaseAssets(context.Background(), "owner", "repo", "v1.0.0")
+	require.NoError(t, err)
+	require.Len(t, assets, 1)
+	assert.Equal(t, "binary.tar.gz", assets[0].GetName())
+}
+
+func TestGetReleaseAssets_Error(t *testing.T) {
+	handler := func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(map[string]string{"message": "Not Found"})
+	}
+
+	server, client := setupMockGitHubServer(t, handler)
+	defer server.Close()
+
+	assets, err := client.GetReleaseAssets(context.Background(), "owner", "repo", "v99.0.0")
+	assert.Error(t, err)
+	assert.Nil(t, assets)
+}
+
+func TestGetReleaseAssetID(t *testing.T) {
+	id := int64(42)
+	name := "binary.tar.gz"
+
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(&github.RepositoryRelease{
+			Assets: []*github.ReleaseAsset{{ID: &id, Name: &name}},
+		})
+	}
+
+	server, client := setupMockGitHubServer(t, handler)
+	defer server.Close()
+
+	assetID, err := client.GetReleaseAssetID(context.Background(), "owner", "repo", "v1.0.0", "binary.tar.gz")
+	require.NoError(t, err)
+	assert.Equal(t, int64(42), assetID)
+}
+
+func TestGetReleaseAssetID_NotFound(t *testing.T) {
+	id := int64(1)
+	name := "other.tar.gz"
+
+	handler := func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(&github.RepositoryRelease{
+			Assets: []*github.ReleaseAsset{{ID: &id, Name: &name}},
+		})
+	}
+
+	server, client := setupMockGitHubServer(t, handler)
+	defer server.Close()
+
+	_, err := client.GetReleaseAssetID(context.Background(), "owner", "repo", "v1.0.0", "missing.tar.gz")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "missing.tar.gz")
+}
+
+func TestGetFileContents(t *testing.T) {
+	import64 := "aGVsbG8gd29ybGQ=" // base64("hello world")
+
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/v3/repos/owner/repo/contents/README.md", r.URL.Path)
+		_ = json.NewEncoder(w).Encode(&github.RepositoryContent{
+			Content:  &import64,
+			Encoding: github.Ptr("base64"),
+		})
+	}
+
+	server, client := setupMockGitHubServer(t, handler)
+	defer server.Close()
+
+	content, err := client.GetFileContents(context.Background(), "owner", "repo", "README.md", "main")
+	require.NoError(t, err)
+	assert.Equal(t, "hello world", content)
+}
+
+func TestGetFileContents_Error(t *testing.T) {
+	handler := func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(map[string]string{"message": "Not Found"})
+	}
+
+	server, client := setupMockGitHubServer(t, handler)
+	defer server.Close()
+
+	_, err := client.GetFileContents(context.Background(), "owner", "repo", "missing.md", "main")
+	assert.Error(t, err)
+}
+
+func TestGetGitHubToken_Present(t *testing.T) {
+	t.Setenv("GITHUB_TOKEN", "test-token-abc")
+
+	cfg := config.NewReaderContainer(logger.NewNoop(), "yaml", strings.NewReader(`
+auth:
+  env: GITHUB_TOKEN
+`))
+
+	token, err := GetGitHubToken(cfg)
+	require.NoError(t, err)
+	assert.Equal(t, "test-token-abc", token)
+}
+
+func TestGetGitHubToken_Missing(t *testing.T) {
+	t.Setenv("GITHUB_TOKEN", "")
+
+	cfg := config.NewReaderContainer(logger.NewNoop(), "yaml", strings.NewReader(`
+auth: {}
+`))
+
+	_, err := GetGitHubToken(cfg)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "GITHUB_TOKEN")
+}
+
+func TestNewGitHubClient_NilConfig(t *testing.T) {
+	t.Parallel()
+
+	client, err := NewGitHubClient(nil)
+	assert.Error(t, err)
+	assert.Nil(t, client)
+	assert.Contains(t, err.Error(), "github configuration is missing")
+}
+
 func TestDownloadAsset(t *testing.T) {
 	assetID := int64(12345)
 
