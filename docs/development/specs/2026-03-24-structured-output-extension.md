@@ -2,7 +2,7 @@
 title: "SPEC 8: Structured Output Extension"
 description: "Extend the --output json flag to all built-in commands with a standard response envelope and helper utilities"
 date: 2026-03-24
-status: DRAFT
+status: IMPLEMENTED
 tags:
   - specification
   - output

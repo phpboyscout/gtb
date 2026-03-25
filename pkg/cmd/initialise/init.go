@@ -4,6 +4,7 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/spf13/cobra"
 
+	"github.com/phpboyscout/go-tool-base/pkg/output"
 	p "github.com/phpboyscout/go-tool-base/pkg/props"
 	"github.com/phpboyscout/go-tool-base/pkg/setup"
 	_ "github.com/phpboyscout/go-tool-base/pkg/setup/ai"
@@ -42,7 +43,13 @@ func NewCmdInit(props *p.Props, opts ...InitOption) *cobra.Command {
 
 			props.Logger.Infof("Configuration initialised in %s", location)
 
-			return nil
+			return output.Emit(cmd, output.Response{
+				Status:  output.StatusSuccess,
+				Command: "init",
+				Data: map[string]any{
+					"config_path": location,
+				},
+			})
 		},
 	}
 

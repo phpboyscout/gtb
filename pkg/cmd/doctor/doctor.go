@@ -50,7 +50,11 @@ func NewCmdDoctor(props *p.Props) *cobra.Command {
 
 			report := RunChecks(cmd.Context(), props)
 
-			return out.Write(report, func(w io.Writer) {
+			return out.Write(output.Response{
+				Status:  output.StatusSuccess,
+				Command: "doctor",
+				Data:    report,
+			}, func(w io.Writer) {
 				PrintReport(w, report)
 			})
 		},

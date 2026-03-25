@@ -46,7 +46,11 @@ func NewCmdVersion(props *p.Props) *cobra.Command {
 			}
 
 			if props.Tool.IsDisabled(p.UpdateCmd) || props.Version.IsDevelopment() {
-				return out.Write(info, func(w io.Writer) {
+				return out.Write(output.Response{
+					Status:  output.StatusSuccess,
+					Command: "version",
+					Data:    info,
+				}, func(w io.Writer) {
 					printVersionText(w, info)
 				})
 			}
@@ -58,7 +62,11 @@ func NewCmdVersion(props *p.Props) *cobra.Command {
 			if err != nil {
 				props.Logger.Warn("failed to load updater for version check", "error", err)
 
-				return out.Write(info, func(w io.Writer) {
+				return out.Write(output.Response{
+					Status:  output.StatusSuccess,
+					Command: "version",
+					Data:    info,
+				}, func(w io.Writer) {
 					printVersionText(w, info)
 				})
 			}
@@ -75,7 +83,11 @@ func NewCmdVersion(props *p.Props) *cobra.Command {
 				props.Logger.Warnf("A new version is available: %s", latest)
 			}
 
-			return out.Write(info, func(w io.Writer) {
+			return out.Write(output.Response{
+				Status:  output.StatusSuccess,
+				Command: "version",
+				Data:    info,
+			}, func(w io.Writer) {
 				printVersionText(w, info)
 			})
 		},
