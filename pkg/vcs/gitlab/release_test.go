@@ -176,6 +176,127 @@ func TestDownloadReleaseAsset_ServerError(t *testing.T) {
 	assert.Contains(t, err.Error(), "status 500")
 }
 
+func newTestProvider(t *testing.T, server *httptest.Server) *GitLabReleaseProvider {
+	t.Helper()
+
+	client, err := gitlab.NewClient("", gitlab.WithBaseURL(server.URL+"/api/v4"))
+	require.NoError(t, err)
+
+	return &GitLabReleaseProvider{client: client}
+}
+
+func TestGetLatestRelease_Success(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`[{"name":"v1.0.0","tag_name":"v1.0.0","description":"First release","assets":{"links":[]}}]`))
+	}))
+	defer server.Close()
+
+	provider := newTestProvider(t, server)
+	rel, err := provider.GetLatestRelease(context.Background(), "owner", "repo")
+	require.NoError(t, err)
+	assert.Equal(t, "v1.0.0", rel.GetTagName())
+	assert.Equal(t, "First release", rel.GetBody())
+}
+
+func TestGetLatestRelease_Empty(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`[]`))
+	}))
+	defer server.Close()
+
+	provider := newTestProvider(t, server)
+	rel, err := provider.GetLatestRelease(context.Background(), "owner", "repo")
+	assert.Error(t, err)
+	assert.Nil(t, rel)
+	assert.Contains(t, err.Error(), "no releases found")
+}
+
+func TestGetLatestRelease_ServerError(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(`{"message":"internal error"}`))
+	}))
+	defer server.Close()
+
+	provider := newTestProvider(t, server)
+	rel, err := provider.GetLatestRelease(context.Background(), "owner", "repo")
+	assert.Error(t, err)
+	assert.Nil(t, rel)
+}
+
+func TestGetReleaseByTag_Success(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"name":"v2.0.0","tag_name":"v2.0.0","description":"Second release","assets":{"links":[]}}`))
+	}))
+	defer server.Close()
+
+	provider := newTestProvider(t, server)
+	rel, err := provider.GetReleaseByTag(context.Background(), "owner", "repo", "v2.0.0")
+	require.NoError(t, err)
+	assert.Equal(t, "v2.0.0", rel.GetTagName())
+}
+
+func TestGetReleaseByTag_NotFound(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"message":"404 Tag Not Found"}`))
+	}))
+	defer server.Close()
+
+	provider := newTestProvider(t, server)
+	rel, err := provider.GetReleaseByTag(context.Background(), "owner", "repo", "v99.0.0")
+	assert.Error(t, err)
+	assert.Nil(t, rel)
+}
+
+func TestListReleases_Success(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`[{"name":"v1.0.0","tag_name":"v1.0.0","description":"","assets":{"links":[]}},{"name":"v0.9.0","tag_name":"v0.9.0","description":"","assets":{"links":[]}}]`))
+	}))
+	defer server.Close()
+
+	provider := newTestProvider(t, server)
+	releases, err := provider.ListReleases(context.Background(), "owner", "repo", 10)
+	require.NoError(t, err)
+	require.Len(t, releases, 2)
+	assert.Equal(t, "v1.0.0", releases[0].GetTagName())
+	assert.Equal(t, "v0.9.0", releases[1].GetTagName())
+}
+
+func TestListReleases_ServerError(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(`{"message":"internal error"}`))
+	}))
+	defer server.Close()
+
+	provider := newTestProvider(t, server)
+	releases, err := provider.ListReleases(context.Background(), "owner", "repo", 10)
+	assert.Error(t, err)
+	assert.Nil(t, releases)
+}
+
 func TestDownloadReleaseAsset_NoToken(t *testing.T) {
 	t.Parallel()
 

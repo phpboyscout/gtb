@@ -283,6 +283,246 @@ func TestIsAIConfigured(t *testing.T) {
 	}
 }
 
+func TestMaskKey(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		in  string
+		out string
+	}{
+		{"", "****"},
+		{"abc", "****"},
+		{"abcd", "****"},
+		{"abcde", "****bcde"},
+		{"sk-ant-api-key", "****-key"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.in, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.out, maskKey(tt.in))
+		})
+	}
+}
+
+func TestProviderEnvVar(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		provider string
+		envVar   string
+	}{
+		{string(chat.ProviderClaude), chat.EnvClaudeKey},
+		{string(chat.ProviderOpenAI), chat.EnvOpenAIKey},
+		{string(chat.ProviderGemini), chat.EnvGeminiKey},
+		{"unknown", ""},
+		{"", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.provider, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.envVar, providerEnvVar(tt.provider))
+		})
+	}
+}
+
+func TestIsValidProvider(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		provider string
+		valid    bool
+	}{
+		{string(chat.ProviderClaude), true},
+		{string(chat.ProviderOpenAI), true},
+		{string(chat.ProviderGemini), true},
+		{"unknown", false},
+		{"", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.provider, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.valid, isValidProvider(tt.provider))
+		})
+	}
+}
+
+func TestProviderLabel(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		provider string
+		label    string
+	}{
+		{string(chat.ProviderClaude), "Anthropic (Claude)"},
+		{string(chat.ProviderOpenAI), "OpenAI"},
+		{string(chat.ProviderGemini), "Google Gemini"},
+		{"custom-provider", "custom-provider"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.provider, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.label, providerLabel(tt.provider))
+		})
+	}
+}
+
+func TestNewAIInitialiser_WithAssets(t *testing.T) {
+	t.Parallel()
+
+	props := newTestProps(t)
+	props.Assets = p.NewAssets()
+
+	i := NewAIInitialiser(props)
+	require.NotNil(t, i)
+	assert.Equal(t, "AI integration", i.Name())
+}
+
+func TestNewAIInitialiser_NilAssets(t *testing.T) {
+	t.Parallel()
+
+	props := newTestProps(t)
+	// props.Assets is nil — should not panic
+	i := NewAIInitialiser(props)
+	require.NotNil(t, i)
+}
+
+func TestAIInitialiser_Name(t *testing.T) {
+	t.Parallel()
+	i := &AIInitialiser{}
+	assert.Equal(t, "AI integration", i.Name())
+}
+
+func TestAIInitialiser_IsConfigured(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		values   map[string]any
+		expected bool
+	}{
+		{
+			name:     "no provider",
+			values:   map[string]any{},
+			expected: false,
+		},
+		{
+			name:     "invalid provider",
+			values:   map[string]any{chat.ConfigKeyAIProvider: "bad"},
+			expected: false,
+		},
+		{
+			name:     "valid provider no key",
+			values:   map[string]any{chat.ConfigKeyAIProvider: string(chat.ProviderClaude)},
+			expected: false,
+		},
+		{
+			name: "claude with key",
+			values: map[string]any{
+				chat.ConfigKeyAIProvider: string(chat.ProviderClaude),
+				chat.ConfigKeyClaudeKey:  "sk-ant-test",
+			},
+			expected: true,
+		},
+		{
+			name: "openai with key",
+			values: map[string]any{
+				chat.ConfigKeyAIProvider: string(chat.ProviderOpenAI),
+				chat.ConfigKeyOpenAIKey:  "sk-openai-test",
+			},
+			expected: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			cfg := newMockConfig(t, tt.values)
+			i := &AIInitialiser{}
+			assert.Equal(t, tt.expected, i.IsConfigured(cfg))
+		})
+	}
+}
+
+func TestAIInitialiser_Configure(t *testing.T) {
+	t.Parallel()
+
+	cfg := mockConfig.NewMockContainable(t)
+	cfg.EXPECT().GetString(chat.ConfigKeyAIProvider).Return("").Maybe()
+	cfg.EXPECT().GetString(mock.Anything).Return("").Maybe()
+	cfg.EXPECT().Set(chat.ConfigKeyAIProvider, string(chat.ProviderClaude)).Once()
+	cfg.EXPECT().Set(chat.ConfigKeyClaudeKey, "sk-ant-configure-test").Once()
+
+	i := &AIInitialiser{
+		formOpts: []FormOption{
+			WithAIForm(func(c *AIConfig) []*huh.Form {
+				c.Provider = string(chat.ProviderClaude)
+				c.APIKey = "sk-ant-configure-test"
+
+				return nil
+			}),
+		},
+	}
+
+	err := i.Configure(newTestProps(t), cfg)
+	assert.NoError(t, err)
+}
+
+func TestAIInitialiser_Configure_NoKey(t *testing.T) {
+	t.Parallel()
+
+	cfg := mockConfig.NewMockContainable(t)
+	cfg.EXPECT().GetString(chat.ConfigKeyAIProvider).Return("").Maybe()
+	cfg.EXPECT().GetString(mock.Anything).Return("").Maybe()
+	cfg.EXPECT().Set(chat.ConfigKeyAIProvider, string(chat.ProviderOpenAI)).Once()
+
+	i := &AIInitialiser{
+		formOpts: []FormOption{
+			WithAIForm(func(c *AIConfig) []*huh.Form {
+				c.Provider = string(chat.ProviderOpenAI)
+				// APIKey intentionally blank
+				return nil
+			}),
+		},
+	}
+
+	err := i.Configure(newTestProps(t), cfg)
+	assert.NoError(t, err)
+}
+
+func TestRunAIForms_ExistingKeyFallback(t *testing.T) {
+	t.Parallel()
+
+	// When the form leaves APIKey blank, runAIForms should fall back to ExistingKey.
+	cfg := newMockConfig(t, map[string]any{
+		chat.ConfigKeyAIProvider: string(chat.ProviderClaude),
+		chat.ConfigKeyClaudeKey:  "sk-ant-existing-key",
+	})
+
+	aiCfg, err := runAIForms(cfg, WithAIForm(func(c *AIConfig) []*huh.Form {
+		c.Provider = string(chat.ProviderClaude)
+		// APIKey intentionally not set — should fall back to ExistingKey
+		return nil
+	}))
+
+	require.NoError(t, err)
+	assert.Equal(t, "sk-ant-existing-key", aiCfg.APIKey)
+}
+
+func TestNewCmdInitAI_Wiring(t *testing.T) {
+	t.Parallel()
+
+	props := newTestProps(t)
+	cmd := NewCmdInitAI(props)
+
+	assert.Equal(t, "ai", cmd.Use)
+	assert.NotEmpty(t, cmd.Short)
+	assert.NotNil(t, cmd.Flags().Lookup("dir"))
+}
+
 // newMockConfig creates a config.Containable mock with the given values.
 func newMockConfig(t *testing.T, values map[string]any) config.Containable {
 	t.Helper()
