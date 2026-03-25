@@ -2,7 +2,7 @@
 title: "Documentation Gaps Specification"
 description: "Fill documentation gaps identified in review: version migration guides, coverage badge and CI enforcement, controls health/status documentation, API stability policy, and error catalogue."
 date: 2026-03-24
-status: IN PROGRESS
+status: IMPLEMENTED
 tags:
   - specification
   - documentation
