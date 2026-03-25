@@ -471,6 +471,14 @@ mcpLogger := slog.New(props.Logger.Handler())
 
 The `mapLogLevel` function and `mcpLogLevel` variable are eliminated entirely.
 
+> **Implementation note (2026-03-25)**: `mapLogLevel` and `mcpLogLevel` are intentionally
+> retained in `pkg/cmd/root/root.go`. The ophis MCP library's `SloggerOptions` requires
+> a `*slog.LevelVar` to receive level updates, and `slog.LevelVar.Set()` requires a
+> `slog.Level` value. `mapLogLevel` bridges `logger.Level` (the GTB abstraction) to
+> `slog.Level` for this purpose. Eliminating it would require redesigning the MCP
+> integration or patching the upstream library. The rest of this section (obtaining
+> `*slog.Logger` via `slog.New(props.Logger.Handler())`) was implemented as specified.
+
 ### GTB CLI (`internal/cmd/root/root.go`)
 
 The GTB CLI's own root command currently imports `charmbracelet/log` directly:
