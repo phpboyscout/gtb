@@ -100,7 +100,7 @@ func Start(cfg config.Containable, logger logger.Logger, srv *grpc.Server) contr
 			return errors.Wrap(err, "failed to listen")
 		}
 
-		logger.Info(fmt.Sprintf("Starting gRPC server on %s", port))
+		logger.Info("starting gRPC server", "addr", port)
 
 		go func() {
 			if err := srv.Serve(lis); err != nil && !errors.Is(err, grpc.ErrServerStopped) {

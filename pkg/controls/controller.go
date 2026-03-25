@@ -2,7 +2,6 @@ package controls
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"sync"
@@ -182,7 +181,7 @@ func (c *Controller) startSignalHandler() {
 	if c.signals != nil {
 		go func() {
 			sig := <-c.Signals()
-			c.logger.Warn(fmt.Sprintf("Received signal: %s", sig))
+			c.logger.Warn("received signal", "signal", sig)
 			c.Stop()
 		}()
 	}
@@ -207,7 +206,7 @@ func (c *Controller) startErrorAndContextHandler() {
 				if !ctxCancelled {
 					ctxCancelled = true
 
-					c.logger.Debug(fmt.Sprintf("Stopping due to context cancellation: %v", c.GetContext().Err()))
+					c.logger.Debug("stopping due to context cancellation", "error", c.GetContext().Err())
 
 					if !c.IsStopping() && !c.IsStopped() {
 						c.Stop()
