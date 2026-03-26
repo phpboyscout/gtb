@@ -216,9 +216,8 @@ func (c *Controller) startErrorAndContextHandler() {
 				if !ctxCancelled {
 					ctxCancelled = true
 
-					c.logger.Debug("stopping due to context cancellation", "error", c.GetContext().Err())
-
 					if !c.IsStopping() && !c.IsStopped() {
+						c.logger.Debug("stopping due to context cancellation", "error", c.GetContext().Err())
 						c.Stop()
 					}
 				}
@@ -265,9 +264,9 @@ func (c *Controller) handleStopMessage() {
 	defer cancel()
 
 	stopping := 0 - c.services.stop(ctx)
-	c.wg.Add(stopping)
 	c.SetState(Stopped)
 	c.logger.Info("Stopped")
+	c.wg.Add(stopping)
 }
 
 // Status returns an aggregate health report for all registered services.
