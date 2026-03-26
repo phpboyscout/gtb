@@ -63,7 +63,14 @@ just mocks        # Regenerate mocks via mockery
 just ci           # Full local CI: tidy, generate, test, test-race, lint
 just coverage     # HTML coverage report
 just generate     # go generate ./...
+just bench        # Run benchmarks with memory stats
+just check        # Run pre-commit hooks on all files
+just vuln         # govulncheck for dependency vulnerabilities
+just deadcode     # Find unreachable exported symbols
+just fix          # Apply go fix for deprecated API usage
+just install      # Install gtb binary to $GOPATH/bin
 just snapshot     # Local goreleaser snapshot build (output to dist/)
+just docs-serve   # Serve documentation locally via mkdocs
 just cleanup      # Remove build artifacts
 ```
 
@@ -141,6 +148,18 @@ The binary entry point is `cmd/gtb/main.go`. The `internal/cmd/` packages add GT
 ### Error Handling
 
 `pkg/errorhandling/` wraps `cockroachdb/errors` with user-facing hints (`WithHint`/`WithHintf`), help channel config (Slack/Teams), and stack traces in debug mode.
+
+### Version Control (VCS)
+
+`pkg/vcs/` abstracts GitHub and GitLab APIs (including Enterprise and nested group paths) for auth, PR management, and release asset operations. Used by the update and init subsystems.
+
+### Setup & Bootstrap
+
+`pkg/setup/` handles first-run bootstrap: auth configuration, SSH key management, and pluggable self-updating from GitHub/GitLab releases.
+
+### TUI Components
+
+`pkg/forms/` provides interactive terminal UI components (prompts, selections, inputs) built on Bubble Tea. `pkg/docs/` implements the built-in interactive markdown documentation browser. `pkg/output/` provides structured output formatting.
 
 ### Code Generation
 
