@@ -73,3 +73,21 @@
 .md-status--DEPRECATED::after {
   mask-image: var(--md-status--deprecated);
 }
+
+/*
+ * Demo video on the home page: floats right at 50% width on desktop,
+ * full-width stacked on mobile.
+ */
+.demo-video {
+  float: right;
+  width: 50%;
+  margin: 0 0 1.5rem 2rem;
+}
+
+@media screen and (max-width: 76.1875em) {
+  .demo-video {
+    float: none;
+    width: 100%;
+    margin: 0 0 1.5rem 0;
+  }
+}

@@ -7,6 +7,7 @@ copyright = """
 Copyright &copy; 2026 Matt Cockayne
 """
 extra_css = ["stylesheets/extra.css"]
+extra_javascript = ["javascripts/nav-specs.js"]
 
 [project.theme]
 language = "en"
