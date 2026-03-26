@@ -159,7 +159,7 @@ func (c *Controller) Start() {
 	c.SetState(Running)
 	c.logger.Debug("Controller set to running state")
 
-	c.services.start(c.ctx, c.errs)
+	c.services.start(c.ctx, c.wg, c.errs)
 	c.logger.Debug("All services should now be running")
 }
 
@@ -172,6 +172,7 @@ func (c *Controller) Wait() {
 func (c *Controller) Stop() {
 	if !c.compareAndSetState(Running, Stopping) {
 		c.logger.Warn("Stop called, but not in expected state, unable to continue", "current_state", c.GetState())
+
 		return
 	}
 

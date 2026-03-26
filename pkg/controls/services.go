@@ -63,18 +63,13 @@ func (q *Services) monitorHealth(ctx context.Context, srv Service, updateInfo fu
 	}
 }
 
-func (q *Services) start(ctx context.Context, errChan chan error) {
+func (q *Services) start(ctx context.Context, wg *sync.WaitGroup, errChan chan error) {
 	q.mu.Lock()
+	defer q.mu.Unlock()
 
-	wg := &sync.WaitGroup{}
 	for _, s := range q.services {
-		wg.Add(1)
-
 		go q.supervise(ctx, s, errChan, wg)
 	}
-
-	q.mu.Unlock()
-	wg.Wait()
 }
 
 func (q *Services) supervise(ctx context.Context, srv Service, errs chan error, wg *sync.WaitGroup) {
