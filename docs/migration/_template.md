@@ -1,7 +1,13 @@
 ---
-title: "Migration Guide: vX.Y to vX.Z"
-description: "Step-by-step upgrade instructions from vX.Y to vX.Z."
+title: "TEMPLATE — Migration Guide: vX.Y to vX.Z"
+description: "Template for authoring GTB migration guides. Not a real migration guide."
+search:
+  exclude: true
 ---
+
+!!! warning "This is a template, not a migration guide"
+    Copy this file to `docs/migration/vX.Y-to-vX.Z.md`, replace all
+    placeholder text, and remove this admonition before publishing.
 
 # Migrating from vX.Y to vX.Z
 
