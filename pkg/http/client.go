@@ -80,6 +80,7 @@ func NewTransport(tlsCfg *tls.Config) *http.Transport {
 	}
 
 	return &http.Transport{
+		Proxy:                 http.ProxyFromEnvironment,
 		TLSClientConfig:       tlsCfg,
 		MaxIdleConns:          defaultMaxIdleConns,
 		MaxIdleConnsPerHost:   defaultMaxIdleConnsPerHost,

@@ -47,6 +47,7 @@ func TestNewTransport(t *testing.T) {
 		assert.NotNil(t, tr.TLSClientConfig)
 		assert.Equal(t, 100, tr.MaxIdleConns)
 		assert.Equal(t, 10, tr.MaxIdleConnsPerHost)
+		assert.NotNil(t, tr.Proxy, "transport should have proxy function set for environment proxy support")
 	})
 
 	t.Run("WithTLSConfig", func(t *testing.T) {
