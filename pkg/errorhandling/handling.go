@@ -151,8 +151,6 @@ func (h *StandardErrorHandler) logError(err error, prefix, level string) {
 
 	kvPairs := h.buildLogKVPairs(err)
 
-	kvPairs = append([]any{"error", err.Error()}, kvPairs...)
-
 	switch level {
 	case LevelFatal:
 		l.Error(err.Error(), kvPairs...)
